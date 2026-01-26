@@ -12,7 +12,7 @@
           <label class="form-label">연도</label>
           <div class="custom-select-wrapper">
             <select v-model="selectedYear" @change="loadData" class="custom-select">
-              <option v-for="y in years" :key="y" :value="y">{{y}}년</option>
+              <option v-for="y in years" :key="y" :value="y">{{ y }}년</option>
             </select>
             <span class="select-arrow">▼</span>
           </div>
@@ -22,7 +22,22 @@
           <label class="form-label">월</label>
           <div class="custom-select-wrapper">
             <select v-model="selectedMonth" @change="loadData" class="custom-select">
-              <option v-for="m in 12" :key="m" :value="m">{{m}}월</option>
+              <option v-for="m in 12" :key="m" :value="m">{{ m }}월</option>
+            </select>
+            <span class="select-arrow">▼</span>
+          </div>
+        </div>
+
+        <div class="filter-item">
+          <label class="form-label">차량 타입</label>
+          <div class="custom-select-wrapper">
+            <select v-model="selectedCarType" @change="onCarTypeChange" class="custom-select">
+              <option value="">전체 차량</option>
+              <option value="지입레미콘">지입레미콘</option>
+              <option value="자차레미콘">자차레미콘</option>
+              <option value="용차">용차</option>
+              <option value="지원차">지원차</option>
+              <option value="일반차량">일반차량</option>
             </select>
             <span class="select-arrow">▼</span>
           </div>
@@ -31,11 +46,14 @@
         <div class="filter-item">
           <label class="form-label">이용자</label>
           <div class="custom-select-wrapper">
-            <select v-model="selectedUserId" @change="loadData" class="custom-select">
+            <select v-model="selectedUserId" @change="loadData" class="custom-select" :disabled="!!selectedCarType">
               <option value="">전체 이용자</option>
-              <option v-for="u in users" :key="u.userId" :value="u.userId">{{u.name}}</option>
+              <option v-for="u in users" :key="u.userId" :value="u.userId">{{ u.name }}</option>
             </select>
             <span class="select-arrow">▼</span>
+          </div>
+          <div class="input-hint" v-if="selectedCarType">
+            차량 타입 선택 시 이용자 필터는 사용할 수 없습니다
           </div>
         </div>
 
@@ -53,7 +71,7 @@
       </div>
     </div>
 
-    <!-- 통계 카드 (확장) -->
+    <!-- 통계 카드 -->
     <div class="stats-section">
       <!-- 총 주유량 -->
       <div class="stat-card">
@@ -62,8 +80,8 @@
         </div>
         <div class="stat-content">
           <div class="stat-label">총 주유량</div>
-          <div class="stat-value">{{totalFuelLiters}}</div>
-          <div class="stat-sub">{{fuelUsageCount}}회 주유</div>
+          <div class="stat-value">{{ totalFuelLiters }}</div>
+          <div class="stat-sub">{{ fuelUsageCount }}회 주유</div>
         </div>
       </div>
 
@@ -74,32 +92,32 @@
         </div>
         <div class="stat-content">
           <div class="stat-label">일일 평균</div>
-          <div class="stat-value">{{dailyAverageFuel}}</div>
-          <div class="stat-sub">{{daysInMonth.length}}일 기준</div>
+          <div class="stat-value">{{ dailyAverageFuel }}</div>
+          <div class="stat-sub">{{ daysInMonth.length }}일 기준</div>
         </div>
       </div>
 
-      <!-- 최다 주유 기사 -->
+      <!-- 최다 주유 직원 -->
       <div class="stat-card">
         <div class="stat-icon" style="background: #fce7f3;">
           <span style="font-size: 1.5rem;">👤</span>
         </div>
         <div class="stat-content">
-          <div class="stat-label">최다 주유 기사</div>
-          <div class="stat-value">{{topDriver.name}}</div>
-          <div class="stat-sub">{{formatNumber(topDriver.amount)}}L</div>
+          <div class="stat-label">최다 주유 직원</div>
+          <div class="stat-value">{{ topDriver.name }}</div>
+          <div class="stat-sub">{{ formatNumber(topDriver.amount) }}L</div>
         </div>
       </div>
 
-      <!-- 최다 주유 차량 -->
+      <!-- 누적 사용량 -->
       <div class="stat-card">
-        <div class="stat-icon" style="background: #fef3c7;">
-          <span style="font-size: 1.5rem;">🚚</span>
+        <div class="stat-icon" style="background: #f3e8ff;">
+          <span style="font-size: 1.5rem;">📊</span>
         </div>
         <div class="stat-content">
-          <div class="stat-label">최다 주유 차량</div>
-          <div class="stat-value">{{topVehicle.carNum}}</div>
-          <div class="stat-sub">{{formatNumber(topVehicle.amount)}}L</div>
+          <div class="stat-label">누적 사용량</div>
+          <div class="stat-value">{{ cumulativeUsed }}</div>
+          <div class="stat-sub">주유기 전체 누적</div>
         </div>
       </div>
 
@@ -111,9 +129,79 @@
         <div class="stat-content">
           <div class="stat-label">총 경유 잔량</div>
           <div class="stat-value" :class="stockValueClass">
-            {{formatNumber(currentStock)}}L
+            {{ formatNumber(currentStock) }}L
           </div>
           <div class="stat-hint">클릭하여 수정</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 차량 타입별 일일 통계 (차량 타입 선택 시) -->
+    <div v-if="selectedCarType && dailyStatsForSelectedType.length > 0" class="daily-stats-section">
+      <div class="section-header">
+        <div class="header-content">
+          <span class="type-icon">{{ getCarTypeIcon(selectedCarType) }}</span>
+          <h3 class="section-title">{{ selectedCarType }} 일일 주유 현황</h3>
+        </div>
+        <div class="summary-stats">
+          <span class="summary-item">
+            <strong>총 주유량:</strong> {{ formatNumber(selectedTypeTotal) }}L
+          </span>
+          <span class="summary-item">
+            <strong>평균:</strong> {{ formatNumber(selectedTypeAverage) }}L/일
+          </span>
+        </div>
+      </div>
+
+      <div class="daily-stats-chart">
+        <div class="chart-wrapper">
+          <div v-for="stat in dailyStatsForSelectedType" :key="stat.day" class="chart-bar-container">
+            <div class="chart-bar-wrapper">
+              <div class="chart-bar"
+                :style="{ height: stat.amount > 0 ? (stat.amount / maxDailyAmount * 100) + '%' : '4px' }"
+                :data-empty="stat.amount === 0"
+                :title="`${stat.day}일: ${formatNumber(stat.amount)}L (${getDayName(stat.day)})`">
+                <div v-if="stat.amount > 0" class="bar-value">
+                  {{ formatNumber(stat.amount) }}
+                </div>
+              </div>
+            </div>
+            <div class="chart-label">
+              <span class="day-num">{{ stat.day }}</span>
+              <span :class="['day-name-small', getDayClass(stat.day)]">
+                {{ getDayName(stat.day) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 차량 타입별 통계 섹션 (전체 보기일 때만) -->
+    <div v-if="!selectedCarType && carTypeStats.length > 0" class="car-type-stats-section">
+      <div class="section-header">
+        <h3 class="section-title">차량 타입별 주유 통계</h3>
+      </div>
+      <div class="car-type-stats-grid">
+        <div v-for="stat in carTypeStats" :key="stat.carType" class="car-type-stat-card">
+          <div class="car-type-header">
+            <span class="car-type-icon">{{ getCarTypeIcon(stat.carType) }}</span>
+            <span class="car-type-name">{{ stat.carType }}</span>
+          </div>
+          <div class="car-type-stats">
+            <div class="car-type-stat-item">
+              <div class="car-type-stat-label">총 주유량</div>
+              <div class="car-type-stat-value">{{ formatNumber(stat.totalLiter) }}L</div>
+            </div>
+            <div class="car-type-stat-item">
+              <div class="car-type-stat-label">주유 횟수</div>
+              <div class="car-type-stat-value">{{ stat.fuelCount }}회</div>
+            </div>
+            <div class="car-type-stat-item">
+              <div class="car-type-stat-label">평균 주유량</div>
+              <div class="car-type-stat-value">{{ formatNumber(stat.avgLiter) }}L</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -123,20 +211,20 @@
       <div class="user-info-header">
         <div class="user-name-badge">
           <span class="badge-icon">👤</span>
-          <span class="badge-text">{{selectedUserInfo.userName}}</span>
+          <span class="badge-text">{{ selectedUserInfo.userName }}</span>
         </div>
         <div class="user-stats-grid">
           <div class="user-stat-item">
             <div class="user-stat-label">총 주유량</div>
-            <div class="user-stat-value">{{formatNumber(selectedUserInfo.totalLiter)}}L</div>
+            <div class="user-stat-value">{{ formatNumber(selectedUserInfo.totalLiter) }}L</div>
           </div>
           <div class="user-stat-item">
             <div class="user-stat-label">주유 횟수</div>
-            <div class="user-stat-value">{{selectedUserInfo.count}}회</div>
+            <div class="user-stat-value">{{ selectedUserInfo.count }}회</div>
           </div>
           <div class="user-stat-item">
             <div class="user-stat-label">평균 주유량</div>
-            <div class="user-stat-value">{{formatNumber(selectedUserInfo.average)}}L</div>
+            <div class="user-stat-value">{{ formatNumber(selectedUserInfo.average) }}L</div>
           </div>
         </div>
       </div>
@@ -145,11 +233,12 @@
         <div class="vehicles-label">할당된 차량 주유 현황</div>
         <div class="vehicles-list">
           <div v-for="(vehicle, idx) in selectedUserInfo.vehicleDetails" :key="idx" class="vehicle-item">
-            <div class="vehicle-name">{{vehicle.carNum}}</div>
+            <div class="vehicle-name">{{ vehicle.carNum }}</div>
             <div class="vehicle-bar">
-              <div class="vehicle-bar-fill" :style="{ width: (vehicle.amount / selectedUserInfo.totalLiter * 100) + '%' }"></div>
+              <div class="vehicle-bar-fill"
+                :style="{ width: (vehicle.amount / selectedUserInfo.totalLiter * 100) + '%' }"></div>
             </div>
-            <div class="vehicle-amount">{{formatNumber(vehicle.amount)}}L</div>
+            <div class="vehicle-amount">{{ formatNumber(vehicle.amount) }}L</div>
           </div>
         </div>
       </div>
@@ -169,8 +258,8 @@
               <th :class="['fixed-col', 'date-col', { compact: selectedUserId }]">일자</th>
               <th v-for="v in filteredVehiclesForTable" :key="v.vehicleId" class="vehicle-header">
                 <div class="vehicle-header-content">
-                  <div class="driver-name">{{getUserName(v.userId)}}</div>
-                  <div class="car-number">{{v.carNum}}</div>
+                  <div class="driver-name">{{ getVehicleDriverName(v) }}</div>
+                  <div class="car-number">{{ v.carNum }}</div>
                 </div>
               </th>
             </tr>
@@ -180,8 +269,8 @@
               <td class="fixed-col date-col">
                 <div class="date-cell-wrapper">
                   <div class="date-content">
-                    <span class="day-number">{{day}}</span>
-                    <span :class="['day-name', getDayClass(day)]">{{getDayName(day)}}</span>
+                    <span class="day-number">{{ day }}</span>
+                    <span :class="['day-name', getDayClass(day)]">{{ getDayName(day) }}</span>
                   </div>
                 </div>
               </td>
@@ -202,7 +291,7 @@
         <div class="modal-header">
           <h5>
             <span style="margin-right: 0.5rem;">⛽</span>
-            {{modal.fuelId ? '사용량 수정' : '사용량 입력'}}
+            {{ modal.fuelId ? '사용량 수정' : '사용량 입력' }}
           </h5>
           <button @click="closeModal" class="close-btn">✕</button>
         </div>
@@ -210,50 +299,61 @@
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label">날짜 *</label>
-            <input
-              type="date"
-              v-model="modal.usageDate"
-              class="custom-input"
-            />
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">기사 선택 *</label>
-            <div class="custom-select-wrapper">
-              <select v-model="modal.userId" @change="onUserChange" class="custom-select">
-                <option value="">선택하세요</option>
-                <option v-for="u in users" :key="u.userId" :value="u.userId">{{u.name}}</option>
-              </select>
-              <span class="select-arrow">▼</span>
-            </div>
+            <input type="date" v-model="modal.usageDate" class="custom-input" />
           </div>
 
           <div class="mb-3">
             <label class="form-label">차량 선택 *</label>
             <div class="custom-select-wrapper">
-              <select v-model="modal.vehicleId" class="custom-select" :disabled="!modal.userId">
-                <option value="">{{modal.userId ? '선택하세요' : '먼저 기사를 선택하세요'}}</option>
-                <option v-for="v in filteredVehicles" :key="v.vehicleId" :value="v.vehicleId">
-                  {{v.carNum}}
-                </option>
+              <select v-model="modal.vehicleId" @change="onVehicleChange" class="custom-select">
+                <option value="">선택하세요</option>
+                <optgroup label="레미콘">
+                  <option v-for="v in vehiclesByType['지입레미콘']" :key="v.vehicleId" :value="v.vehicleId">
+                    {{ v.carNum }} ({{ v.modelName }})
+                  </option>
+                  <option v-for="v in vehiclesByType['자차레미콘']" :key="v.vehicleId" :value="v.vehicleId">
+                    {{ v.carNum }} ({{ v.modelName }})
+                  </option>
+                </optgroup>
+                <optgroup label="용차/지원차">
+                  <option v-for="v in vehiclesByType['용차']" :key="v.vehicleId" :value="v.vehicleId">
+                    {{ v.carNum }} ({{ v.modelName }})
+                  </option>
+                  <option v-for="v in vehiclesByType['지원차']" :key="v.vehicleId" :value="v.vehicleId">
+                    {{ v.carNum }} ({{ v.modelName }})
+                  </option>
+                </optgroup>
+                <optgroup label="일반차량">
+                  <option v-for="v in vehiclesByType['일반차량']" :key="v.vehicleId" :value="v.vehicleId">
+                    {{ v.carNum }} ({{ v.modelName }})
+                  </option>
+                </optgroup>
               </select>
               <span class="select-arrow">▼</span>
             </div>
-            <div class="input-hint" v-if="modal.userId && filteredVehicles.length === 0">
-              이 기사에게 배정된 차량이 없습니다.
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">담당자 선택 *</label>
+            <div class="custom-select-wrapper">
+              <select v-model="modal.userId" class="custom-select" :disabled="!modal.vehicleId || isVehicleAssigned">
+                <option value="">{{ getDriverPlaceholder() }}</option>
+                <option v-for="u in users" :key="u.userId" :value="u.userId">{{ u.name }}</option>
+              </select>
+              <span class="select-arrow">▼</span>
+            </div>
+            <div class="input-hint" v-if="isVehicleAssigned">
+              이 차량은 {{ getAssignedDriverName() }}에게 배정되어 있습니다.
+            </div>
+            <div class="input-hint" v-else-if="modal.vehicleId && !isVehicleAssigned">
+              용차/지원차는 담당자를 선택해주세요.
             </div>
           </div>
 
           <div class="mb-3">
             <label class="form-label">주유량 (L) *</label>
-            <input
-              type="number"
-              v-model.number="modal.fuelLiter"
-              placeholder="예: 80.5"
-              class="custom-input"
-              step="0.1"
-              min="0"
-            />
+            <input type="number" v-model.number="modal.fuelLiter" placeholder="예: 80.5" class="custom-input" step="0.1"
+              min="0" />
           </div>
         </div>
 
@@ -286,52 +386,41 @@
           <div class="mb-3">
             <label class="form-label">현재 재고</label>
             <div class="current-stock-display" :class="currentStock < 4000 ? 'warning' : ''">
-              {{formatNumber(currentStock)}} L
+              {{ formatNumber(currentStock) }} L
               <span v-if="currentStock < 4000" class="warning-badge">⚠️ 4천L 미만</span>
             </div>
           </div>
 
           <div class="mb-3">
             <label class="form-label">새로운 재고량 (L)</label>
-            <input
-              type="number"
-              v-model.number="stockModalValue"
-              placeholder="예: 5000"
-              class="custom-input"
-              step="0.01"
-              min="0"
-            />
+            <input type="number" v-model.number="stockModalValue" placeholder="예: 5000" class="custom-input" step="0.01"
+              min="0" />
             <div class="input-hint">직접 입력하여 재고량을 설정합니다</div>
           </div>
 
           <div class="mb-3">
             <label class="form-label">메모</label>
-            <input
-              type="text"
-              v-model="stockModalMemo"
-              placeholder="예: 경유 5000L 구매"
-              class="custom-input"
-            />
+            <input type="text" v-model="stockModalMemo" placeholder="예: 경유 5000L 구매" class="custom-input" />
           </div>
 
           <div class="change-preview" v-if="stockModalValue !== currentStock && stockModalValue >= 0">
             <div class="preview-row">
               <span>변경 전:</span>
-              <strong>{{formatNumber(currentStock)}} L</strong>
+              <strong>{{ formatNumber(currentStock) }} L</strong>
             </div>
             <div class="preview-arrow">→</div>
             <div class="preview-row">
               <span>변경 후:</span>
               <strong :class="stockModalValue > currentStock ? 'text-success' : 'text-danger'">
-                {{formatNumber(stockModalValue)}} L
+                {{ formatNumber(stockModalValue) }} L
               </strong>
             </div>
             <div class="preview-diff">
               <span v-if="stockModalValue > currentStock" class="diff-add">
-                +{{formatNumber(stockModalValue - currentStock)}} L
+                +{{ formatNumber(stockModalValue - currentStock) }} L
               </span>
               <span v-else class="diff-sub">
-                -{{formatNumber(currentStock - stockModalValue)}} L
+                -{{ formatNumber(currentStock - stockModalValue) }} L
               </span>
             </div>
           </div>
@@ -356,11 +445,18 @@ import api from '@/api/axios'
 
 const selectedYear = ref(new Date().getFullYear())
 const selectedMonth = ref(new Date().getMonth() + 1)
+const selectedCarType = ref('')
 const selectedUserId = ref('')
+
+const cumulativeUsedLiters = ref(0)
+const cumulativeUsed = computed(() => {
+  return formatNumber(cumulativeUsedLiters.value || 0) + 'L'
+})
 
 const users = ref([])
 const vehicles = ref([])
 const usageData = ref([])
+const carTypeStats = ref([])
 const loading = ref(false)
 
 const showModal = ref(false)
@@ -381,6 +477,95 @@ const daysInMonth = computed(() => {
   return Array.from({ length: days }, (_, i) => i + 1)
 })
 
+// 차량 타입 변경 시
+const onCarTypeChange = () => {
+  // 차량 타입이 선택되면 이용자 필터 초기화
+  if (selectedCarType.value) {
+    selectedUserId.value = ''
+  }
+  loadData()
+}
+
+// 차량을 타입별로 그룹화
+const vehiclesByType = computed(() => {
+  const grouped = {
+    '지입레미콘': [],
+    '자차레미콘': [],
+    '용차': [],
+    '지원차': [],
+    '일반차량': []
+  }
+  vehicles.value.forEach(v => {
+    if (grouped[v.carType]) {
+      grouped[v.carType].push(v)
+    }
+  })
+  return grouped
+})
+
+// 선택된 차량 타입의 일일 통계
+const dailyStatsForSelectedType = computed(() => {
+  if (!selectedCarType.value) return []
+
+  // 해당 타입의 차량 ID들
+  const typeVehicleIds = vehicles.value
+    .filter(v => v.carType === selectedCarType.value)
+    .map(v => v.vehicleId)
+
+  // 날짜별 주유량 집계
+  const dailyMap = {}
+  daysInMonth.value.forEach(day => {
+    dailyMap[day] = 0
+  })
+
+  usageData.value
+    .filter(u => u.usageType === 'LITER' && typeVehicleIds.includes(u.vehicleId))
+    .forEach(u => {
+      const date = new Date(u.usageDate)
+      const day = date.getDate()
+      if (dailyMap[day] !== undefined) {
+        dailyMap[day] += u.fuelLiter || 0
+      }
+    })
+
+  return Object.entries(dailyMap)
+    .map(([day, amount]) => ({
+      day: parseInt(day),
+      amount: amount
+    }))
+    .sort((a, b) => a.day - b.day)
+})
+
+// 선택된 타입의 총 주유량
+const selectedTypeTotal = computed(() => {
+  return dailyStatsForSelectedType.value.reduce((sum, stat) => sum + stat.amount, 0)
+})
+
+// 선택된 타입의 평균 주유량
+const selectedTypeAverage = computed(() => {
+  const total = selectedTypeTotal.value
+  const days = daysInMonth.value.length
+  return days > 0 ? total / days : 0
+})
+
+// 차트에서 가장 큰 값 (높이 계산용)
+const maxDailyAmount = computed(() => {
+  if (dailyStatsForSelectedType.value.length === 0) return 1
+  return Math.max(...dailyStatsForSelectedType.value.map(s => s.amount), 1)
+})
+
+// 차량 타입 아이콘
+const getCarTypeIcon = (carType) => {
+  const icons = {
+    '지입레미콘': '🚚',
+    '자차레미콘': '🚛',
+    '용차': '🚜',
+    '지원차': '🚐',
+    '일반차량': '🚗'
+  }
+  return icons[carType] || '🚗'
+}
+
 const totalFuelLiters = computed(() => {
   const totalLiter = usageData.value
     .filter(u => u.usageType === 'LITER')
@@ -390,7 +575,6 @@ const totalFuelLiters = computed(() => {
   return formatNumber(totalLiter) + 'L'
 })
 
-// 일일 평균 주유량
 const dailyAverageFuel = computed(() => {
   const totalLiter = usageData.value
     .filter(u => u.usageType === 'LITER')
@@ -402,12 +586,10 @@ const dailyAverageFuel = computed(() => {
   return formatNumber(average) + 'L'
 })
 
-// 주유 횟수
 const fuelUsageCount = computed(() => {
   return usageData.value.filter(u => u.usageType === 'LITER').length
 })
 
-// 최다 주유 기사
 const topDriver = computed(() => {
   if (usageData.value.length === 0) return { name: '-', amount: 0 }
 
@@ -431,32 +613,6 @@ const topDriver = computed(() => {
   }
 })
 
-// 최다 주유 차량
-const topVehicle = computed(() => {
-  if (usageData.value.length === 0) return { carNum: '-', amount: 0 }
-
-  const vehicleMap = {}
-  usageData.value
-    .filter(u => u.usageType === 'LITER')
-    .forEach(u => {
-      if (!vehicleMap[u.vehicleId]) {
-        vehicleMap[u.vehicleId] = 0
-      }
-      vehicleMap[u.vehicleId] += u.fuelLiter || 0
-    })
-
-  const topVehicleId = Object.keys(vehicleMap).reduce((a, b) =>
-    vehicleMap[a] > vehicleMap[b] ? a : b, Object.keys(vehicleMap)[0] || null)
-
-  if (!topVehicleId) return { carNum: '-', amount: 0 }
-  const vehicle = vehicles.value.find(v => v.vehicleId === topVehicleId)
-  return {
-    carNum: vehicle ? vehicle.carNum : '-',
-    amount: vehicleMap[topVehicleId]
-  }
-})
-
-// 선택된 이용자의 상세 정보
 const selectedUserInfo = computed(() => {
   if (!selectedUserId.value) {
     return null
@@ -467,7 +623,6 @@ const selectedUserInfo = computed(() => {
   const count = userRecords.length
   const average = count > 0 ? totalLiter / count : 0
 
-  // 차량별 주유량
   const vehicleMap = {}
   userRecords.forEach(u => {
     if (!vehicleMap[u.vehicleId]) {
@@ -511,32 +666,59 @@ const stockValueClass = computed(() => {
   return ''
 })
 
-// 테이블에 표시할 차량 필터링 (선택된 이용자만 표시)
 const filteredVehiclesForTable = computed(() => {
-  if (!selectedUserId.value) {
-    return vehicles.value
+  let filtered = vehicles.value
+
+  // 차량 타입 필터
+  if (selectedCarType.value) {
+    filtered = filtered.filter(v => v.carType === selectedCarType.value)
   }
-  return vehicles.value.filter(v => v.userId === selectedUserId.value)
+
+  // 사용자 필터 (차량 타입이 선택되지 않았을 때만)
+  if (!selectedCarType.value && selectedUserId.value) {
+    filtered = filtered.filter(v => v.userId === selectedUserId.value)
+  }
+
+  return filtered
 })
 
-// 선택된 기사의 차량만 필터링
-const filteredVehicles = computed(() => {
-  if (!modal.value.userId) {
-    return []
-  }
-  return vehicles.value.filter(v => v.userId === modal.value.userId)
+// 차량 선택시 배정된 사용자가 있는지 확인
+const isVehicleAssigned = computed(() => {
+  if (!modal.value.vehicleId) return false
+  const vehicle = vehicles.value.find(v => v.vehicleId === modal.value.vehicleId)
+  return vehicle && vehicle.userId > 0
 })
 
-// 기사 선택 시 자동으로 차량 선택
-const onUserChange = () => {
-  const userVehicles = vehicles.value.filter(v => v.userId === modal.value.userId)
-  // 해당 기사의 차량이 1대만 있으면 자동 선택
-  if (userVehicles.length === 1) {
-    modal.value.vehicleId = userVehicles[0].vehicleId
-  } else {
-    // 여러 대 또는 없으면 초기화
-    modal.value.vehicleId = ''
+// 차량 변경시
+const onVehicleChange = () => {
+  const vehicle = vehicles.value.find(v => v.vehicleId === modal.value.vehicleId)
+  if (vehicle) {
+    if (vehicle.userId > 0) {
+      modal.value.userId = vehicle.userId
+    } else {
+      modal.value.userId = ''
+    }
   }
+}
+
+const getDriverPlaceholder = () => {
+  if (!modal.value.vehicleId) return '먼저 차량을 선택하세요'
+  if (isVehicleAssigned.value) return '자동 설정됨'
+  return '담당자를 선택하세요'
+}
+
+const getAssignedDriverName = () => {
+  if (!modal.value.vehicleId) return ''
+  const vehicle = vehicles.value.find(v => v.vehicleId === modal.value.vehicleId)
+  if (!vehicle || vehicle.userId === 0) return ''
+  return getUserName(vehicle.userId)
+}
+
+const getVehicleDriverName = (vehicle) => {
+  if (vehicle.userId === 0) {
+    return vehicle.modelName || vehicle.carNum
+  }
+  return getUserName(vehicle.userId)
 }
 
 const getUserName = (userId) => {
@@ -599,16 +781,11 @@ const openAddModal = () => {
 
   modal.value = {
     fuelId: null,
-    userId: selectedUserId.value || '',
+    userId: '',
     vehicleId: '',
     usageDate: dateStr,
     usageType: 'LITER',
     fuelLiter: null
-  }
-
-  // 필터에서 기사가 선택되어 있으면 자동으로 차량도 선택
-  if (selectedUserId.value) {
-    onUserChange()
   }
 
   showModal.value = true
@@ -634,13 +811,13 @@ const closeModal = () => {
 }
 
 const saveModal = async () => {
-  if (!modal.value.userId) {
-    alert('기사를 선택해주세요')
+  if (!modal.value.vehicleId) {
+    alert('차량을 선택해주세요')
     return
   }
 
-  if (!modal.value.vehicleId) {
-    alert('차량을 선택해주세요')
+  if (!modal.value.userId) {
+    alert('담당자를 선택해주세요')
     return
   }
 
@@ -680,9 +857,31 @@ const loadStock = async () => {
     const response = await api.post('/fuel/stock/current')
     const data = response.data || response
     currentStock.value = parseFloat(data.totalLiters || 0)
+    cumulativeUsedLiters.value = parseFloat(data.cumulativeUsedLiters || 0)
   } catch (error) {
     console.error('재고 조회 실패:', error)
+    cumulativeUsedLiters.value = 0
     currentStock.value = 0
+  }
+}
+
+const loadCarTypeStats = async () => {
+  try {
+    const response = await api.post('/fuel/stats/by-car-type', {
+      year: selectedYear.value,
+      month: selectedMonth.value
+    })
+    const data = response.data || response
+
+    carTypeStats.value = data.map(stat => ({
+      carType: stat.car_type || stat.carType,
+      fuelCount: parseInt(stat.fuel_count || stat.fuelCount || 0),
+      totalLiter: parseFloat(stat.total_liter || stat.totalLiter || 0),
+      avgLiter: parseFloat(stat.avg_liter || stat.avgLiter || 0)
+    })).filter(stat => stat.totalLiter > 0)
+  } catch (error) {
+    console.error('차량 타입별 통계 조회 실패:', error)
+    carTypeStats.value = []
   }
 }
 
@@ -730,7 +929,7 @@ const loadData = async () => {
   try {
     const [u, v, f] = await Promise.all([
       api.post('/users/list'),
-      api.post('/vehicles', { userId: 0 }), // 전체 차량 목록 가져오기
+      api.post('/vehicles', { userId: 0 }),
       api.post('/fuel/usage/query', {
         year: selectedYear.value,
         month: selectedMonth.value,
@@ -742,6 +941,7 @@ const loadData = async () => {
     usageData.value = f.data || f
 
     await loadStock()
+    await loadCarTypeStats()
   } catch (error) {
     alert('데이터를 불러오는 중 오류가 발생했습니다: ' + error.message)
   } finally {
@@ -757,6 +957,7 @@ onMounted(loadData)
 </script>
 
 <style scoped>
+/* 기존 스타일 + 새로운 스타일 추가 */
 .page-container {
   padding: 1.5rem;
   max-width: 1920px;
@@ -809,16 +1010,16 @@ onMounted(loadData)
 .custom-select {
   width: 100%;
   font-size: 0.9375rem;
+  border: 1px solid #e2e8f0;
   border-radius: 0.5rem;
   background: white;
   color: #334155;
   appearance: none;
   cursor: pointer;
   transition: all 0.2s ease;
-  padding: 0.625rem 2.5rem 0.625rem 1rem;
 }
 
-.custom-select:hover {
+.custom-select:hover:not(:disabled) {
   border-color: #cbd5e1;
 }
 
@@ -832,6 +1033,7 @@ onMounted(loadData)
   background-color: #f8fafc;
   color: #94a3b8;
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .select-arrow {
@@ -848,6 +1050,7 @@ onMounted(loadData)
   width: 100%;
   padding: 0.625rem 1rem;
   font-size: 0.9375rem;
+  border: 1px solid #e2e8f0;
   border-radius: 0.5rem;
   background: white;
   color: #334155;
@@ -862,6 +1065,12 @@ onMounted(loadData)
   outline: none;
   border-color: #f59e0b;
   box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.input-hint {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
 }
 
 .btn-custom {
@@ -996,6 +1205,212 @@ onMounted(loadData)
   color: #f59e0b !important;
 }
 
+/* 일일 통계 섹션 (차량 타입 선택 시) */
+.daily-stats-section {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 0.75rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.type-icon {
+  font-size: 2rem;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.summary-stats {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.summary-item {
+  font-size: 0.9375rem;
+  color: #64748b;
+}
+
+.summary-item strong {
+  color: #1e293b;
+  margin-right: 0.25rem;
+}
+
+.daily-stats-chart {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  overflow-x: auto;
+}
+
+.chart-wrapper {
+  display: flex;
+  gap: 0.5rem;
+  min-width: 100%;
+  align-items: flex-end;
+  height: 250px;
+}
+
+.chart-bar-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 30px;
+}
+
+.chart-bar-wrapper {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  position: relative;
+}
+
+.chart-bar {
+  width: 100%;
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 0.375rem 0.375rem 0 0;
+  position: relative;
+  min-height: 4px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 0.25rem;
+}
+
+.chart-bar:hover {
+  background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
+  box-shadow: 0 -4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.bar-value {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: white;
+  white-space: nowrap;
+}
+
+.chart-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.day-num {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.day-name-small {
+  font-size: 0.625rem;
+  color: #78350f;
+  font-weight: 600;
+}
+
+.day-name-small.sunday {
+  color: #ef4444;
+}
+
+.day-name-small.saturday {
+  color: #3b82f6;
+}
+
+/* 차량 타입별 통계 섹션 */
+.car-type-stats-section {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 0.75rem;
+}
+
+.car-type-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.car-type-stat-card {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.car-type-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.car-type-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid rgba(146, 64, 14, 0.2);
+}
+
+.car-type-icon {
+  font-size: 1.75rem;
+}
+
+.car-type-name {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.car-type-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.car-type-stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.car-type-stat-label {
+  font-size: 0.875rem;
+  color: #78350f;
+  font-weight: 600;
+}
+
+.car-type-stat-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #92400e;
+}
+
 .table-section {
   background: white;
   border-radius: 1rem;
@@ -1022,7 +1437,9 @@ onMounted(loadData)
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .table-wrapper {
@@ -1201,6 +1618,7 @@ onMounted(loadData)
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .modal-header h5 {
@@ -1242,16 +1660,11 @@ onMounted(loadData)
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
+  border-top: 1px solid #e2e8f0;
 }
 
 .mb-3 {
   margin-bottom: 1rem;
-}
-
-.input-hint {
-  font-size: 0.75rem;
-  color: #64748b;
-  margin-top: 0.25rem;
 }
 
 .current-stock-display {
@@ -1465,5 +1878,212 @@ onMounted(loadData)
   font-size: 0.9375rem;
   font-weight: 700;
   color: #3b82f6;
+}
+
+.daily-stats-section {
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 0.75rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.type-icon {
+  font-size: 2.5rem;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+}
+
+.summary-stats {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  padding: 1rem 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.summary-item {
+  font-size: 1rem;
+  color: #64748b;
+}
+
+.summary-item strong {
+  color: #1e293b;
+  margin-right: 0.5rem;
+  font-size: 1.125rem;
+}
+
+.daily-stats-chart {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 1rem;
+  padding: 2rem;
+  border: 2px solid #e2e8f0;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.chart-wrapper {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  height: 450px;
+  padding: 1rem 0.5rem;
+  background: linear-gradient(to top, #f8fafc 0%, #ffffff 100%);
+  border-radius: 0.5rem;
+  position: relative;
+}
+
+/* 차트 배경 그리드 라인 (선택사항) */
+.chart-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(to top, #e2e8f0 1px, transparent 1px);
+  background-size: 100% 25%;
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+.chart-bar-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 30px;
+  position: relative;
+}
+
+.chart-bar-wrapper {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  position: relative;
+}
+
+.chart-bar {
+  width: 100%;
+  border-radius: 0.5rem 0.5rem 0 0;
+  position: relative;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 0.5rem;
+  box-shadow: 0 -4px 12px rgba(59, 130, 246, 0.3),
+              0 2px 8px rgba(59, 130, 246, 0.2);
+  cursor: pointer;
+}
+
+.chart-bar:hover {
+  filter: brightness(1.2);
+  box-shadow: 0 -8px 20px rgba(59, 130, 246, 0.5),
+              0 4px 12px rgba(59, 130, 246, 0.3);
+  transform: translateY(-4px) scaleX(1.05);
+}
+
+/* 0L인 경우 */
+.chart-bar[data-empty="true"] {
+  background: linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%) !important;
+  box-shadow: 0 -2px 4px rgba(148, 163, 184, 0.2);
+  opacity: 0.4;
+}
+
+.chart-bar[data-empty="true"]:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
+
+.bar-value {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  backdrop-filter: blur(4px);
+}
+
+.chart-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.25rem;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  min-width: 45px;
+}
+
+.day-num {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.day-name-small {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.day-name-small.sunday {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.day-name-small.saturday {
+  color: #3b82f6;
+  font-weight: 700;
+}
+
+/* 반응형 */
+@media (max-width: 1400px) {
+  .chart-wrapper {
+    height: 380px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .chart-wrapper {
+    height: 320px;
+    gap: 4px;
+  }
+  
+  .chart-bar-container {
+    min-width: 25px;
+  }
 }
 </style>
