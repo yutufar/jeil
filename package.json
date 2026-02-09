@@ -16,6 +16,7 @@
   "dependencies": {
     "@schedule-x/calendar": "^3.7.1",
     "@schedule-x/theme-default": "^3.7.1",
+    "@vuepic/vue-datepicker": "^12.1.0",
     "axios": "^1.13.2",
     "chart.js": "2.9.4",
     "eslint-plugin-vue": "9.11.0",
@@ -25,7 +26,8 @@
     "vue-i18n": "8.28.2",
     "vue-router": "3.6.5",
     "vue-router-prefetch": "1.6.3",
-    "vue2-transitions": "0.3.0"
+    "vue2-transitions": "0.3.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@babel/eslint-parser": "7.21.8",

@@ -97,6 +97,18 @@
         </div>
       </div>
 
+      <!-- 운반비 (레미콘 타입 선택 시만) -->
+      <div v-if="isRemiconType" class="stat-card stat-card-clickable" @click="openTransportCostSummary">
+        <div class="stat-icon" style="background: #fef3c7;">
+          <span style="font-size: 1.5rem;">🚚</span>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">총 운반비</div>
+          <div class="stat-value">{{ totalTransportCost }}</div>
+          <div class="stat-hint">클릭하여 관리</div>
+        </div>
+      </div>
+
       <!-- 최다 주유 직원 -->
       <div class="stat-card">
         <div class="stat-icon" style="background: #fce7f3;">
@@ -136,7 +148,104 @@
       </div>
     </div>
 
-    <!-- 차량 타입별 일일 통계 (차량 타입 선택 시) -->
+    <!-- 일반차량 주행거리 관리 섹션 -->
+    <div v-if="selectedCarType === '일반차량'" class="mileage-management-section">
+      <div class="section-header">
+        <div class="header-content">
+          <span class="type-icon">🚗</span>
+          <h3 class="section-title">법인차량 주행거리 관리</h3>
+        </div>
+        <button @click="openMileageModal()" class="btn-custom btn-primary btn-sm">
+          ➕ 주행거리 입력
+        </button>
+      </div>
+
+      <div class="mileage-table-wrapper">
+        <table class="mileage-table">
+          <thead>
+            <tr>
+              <th>차량번호</th>
+              <th>담당자</th>
+              <th>시작 km</th>
+              <th>종료 km</th>
+              <th>월간 주행</th>
+              <th>출퇴근일</th>
+              <th>업무주행</th>
+              <th>연비</th>
+              <th>보험기간</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="m in mileageData" :key="m.mileageId">
+              <td>{{ getVehicleCarNum(m.vehicleId) }}</td>
+              <td>{{ getUserName(m.userId) }}</td>
+              <td>{{ formatNumber(m.startKm) }}</td>
+              <td>{{ formatNumber(m.endKm) }}</td>
+              <td><strong>{{ formatNumber(m.monthlyKm) }} km</strong></td>
+              <td>{{ m.commuteDays }}일</td>
+              <td>{{ formatNumber(m.workKm) }} km</td>
+              <td>{{ m.avgFuelConsumption ? m.avgFuelConsumption.toFixed(1) : '-' }} km/L</td>
+              <td class="insurance-cell">{{ formatInsurance(m.vehicleId) }}</td>
+              <td>
+                <button @click="openMileageModal(m)" class="btn-icon btn-edit">✏️</button>
+                <button @click="deleteMileage(m.mileageId)" class="btn-icon btn-delete">🗑️</button>
+              </td>
+            </tr>
+            <tr v-if="mileageData.length === 0">
+              <td colspan="10" class="empty-cell">주행거리 데이터가 없습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 레미콘 운반비 관리 섹션 -->
+    <div v-if="isRemiconType" class="transport-cost-section">
+      <div class="section-header">
+        <div class="header-content">
+          <span class="type-icon">{{ getCarTypeIcon(selectedCarType) }}</span>
+          <h3 class="section-title">{{ selectedCarType }} 운반비 관리</h3>
+        </div>
+        <button @click="openTransportCostModal()" class="btn-custom btn-primary btn-sm">
+          ➕ 운반비 입력
+        </button>
+      </div>
+
+      <div class="transport-cost-grid">
+        <div v-for="cost in transportCosts" :key="cost.costId" class="transport-cost-card">
+          <div class="cost-card-header">
+            <div class="vehicle-info">
+              <div class="vehicle-name">{{ getVehicleCarNum(cost.vehicleId) }}</div>
+              <div class="driver-name">{{ getUserName(cost.userId) }}</div>
+            </div>
+            <div class="cost-actions">
+              <button @click="openTransportCostModal(cost)" class="btn-icon btn-edit">✏️</button>
+              <button @click="deleteTransportCost(cost.costId)" class="btn-icon btn-delete">🗑️</button>
+            </div>
+          </div>
+          <div class="cost-card-body">
+            <div class="cost-item">
+              <span class="cost-label">운반비</span>
+              <span class="cost-value">{{ formatNumber(cost.transportCost) }}원</span>
+            </div>
+            <div class="cost-item">
+              <span class="cost-label">유류비</span>
+              <span class="cost-value">{{ formatNumber(cost.fuelCost) }}원</span>
+            </div>
+            <div class="cost-item total">
+              <span class="cost-label">합계</span>
+              <span class="cost-value">{{ formatNumber(cost.totalCost) }}원</span>
+            </div>
+          </div>
+        </div>
+        <div v-if="transportCosts.length === 0" class="empty-cost-card">
+          운반비 데이터가 없습니다
+        </div>
+      </div>
+    </div>
+
+    <!-- 차량 타입별 일일 통계 -->
     <div v-if="selectedCarType && dailyStatsForSelectedType.length > 0" class="daily-stats-section">
       <div class="section-header">
         <div class="header-content">
@@ -177,7 +286,7 @@
       </div>
     </div>
 
-    <!-- 차량 타입별 통계 섹션 (전체 보기일 때만) -->
+    <!-- 차량 타입별 통계 섹션 -->
     <div v-if="!selectedCarType && carTypeStats.length > 0" class="car-type-stats-section">
       <div class="section-header">
         <h3 class="section-title">차량 타입별 주유 통계</h3>
@@ -371,6 +480,134 @@
       </div>
     </div>
 
+    <!-- 주행거리 입력 모달 -->
+    <div v-if="showMileageModal" class="modal-overlay" @click.self="closeMileageModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5>
+            <span style="margin-right: 0.5rem;">📍</span>
+            {{ mileageModal.mileageId ? '주행거리 수정' : '주행거리 입력' }}
+          </h5>
+          <button @click="closeMileageModal" class="close-btn">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">차량 선택 *</label>
+            <div class="custom-select-wrapper">
+              <select v-model="mileageModal.vehicleId" class="custom-select">
+                <option value="">선택하세요</option>
+                <option v-for="v in vehiclesByType['일반차량']" :key="v.vehicleId" :value="v.vehicleId">
+                  {{ v.carNum }} ({{ v.modelName }})
+                </option>
+              </select>
+              <span class="select-arrow">▼</span>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">시작 km *</label>
+            <input type="number" v-model.number="mileageModal.startKm" placeholder="예: 10000" class="custom-input"
+              step="1" min="0" @input="calculateMonthlyKm" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">종료 km *</label>
+            <input type="number" v-model.number="mileageModal.endKm" placeholder="예: 11500" class="custom-input"
+              step="1" min="0" @input="calculateMonthlyKm" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">월간 주행 (자동계산)</label>
+            <input type="number" v-model.number="mileageModal.monthlyKm" class="custom-input" readonly
+              style="background: #f1f5f9;" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">출퇴근일수</label>
+            <input type="number" v-model.number="mileageModal.commuteDays" placeholder="예: 20" class="custom-input"
+              step="1" min="0" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">업무 주행거리 (km)</label>
+            <input type="number" v-model.number="mileageModal.workKm" placeholder="예: 500" class="custom-input"
+              step="1" min="0" />
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button @click="deleteMileageFromModal" v-if="mileageModal.mileageId" class="btn-custom btn-danger">
+            🗑️ 삭제
+          </button>
+          <button @click="closeMileageModal" class="btn-custom btn-secondary">
+            취소
+          </button>
+          <button @click="saveMileageModal" class="btn-custom btn-success">
+            💾 저장
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 운반비 입력 모달 -->
+    <div v-if="showTransportCostModal" class="modal-overlay" @click.self="closeTransportCostModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5>
+            <span style="margin-right: 0.5rem;">🚚</span>
+            {{ transportCostModal.costId ? '운반비 수정' : '운반비 입력' }}
+          </h5>
+          <button @click="closeTransportCostModal" class="close-btn">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">차량 선택 *</label>
+            <div class="custom-select-wrapper">
+              <select v-model="transportCostModal.vehicleId" @change="onTransportVehicleChange" class="custom-select">
+                <option value="">선택하세요</option>
+                <option v-for="v in remiconVehicles" :key="v.vehicleId" :value="v.vehicleId">
+                  {{ v.carNum }} ({{ v.modelName }})
+                </option>
+              </select>
+              <span class="select-arrow">▼</span>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">운반비 (원) *</label>
+            <input type="number" v-model.number="transportCostModal.transportCost" placeholder="예: 1500000"
+              class="custom-input" step="1000" min="0" @input="calculateTotalCost" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">유류비 (원) *</label>
+            <input type="number" v-model.number="transportCostModal.fuelCost" placeholder="예: 800000"
+              class="custom-input" step="1000" min="0" @input="calculateTotalCost" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">합계 (자동계산)</label>
+            <input type="number" v-model.number="transportCostModal.totalCost" class="custom-input" readonly
+              style="background: #f1f5f9;" />
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button @click="deleteTransportCostFromModal" v-if="transportCostModal.costId" class="btn-custom btn-danger">
+            🗑️ 삭제
+          </button>
+          <button @click="closeTransportCostModal" class="btn-custom btn-secondary">
+            취소
+          </button>
+          <button @click="saveTransportCostModal" class="btn-custom btn-success">
+            💾 저장
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 재고 수정 모달 -->
     <div v-if="showStockModal" class="modal-overlay" @click.self="closeStockModal">
       <div class="modal-content modal-small">
@@ -442,6 +679,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '@/api/axios'
+import * as XLSX from 'xlsx'
 
 const selectedYear = ref(new Date().getFullYear())
 const selectedMonth = ref(new Date().getMonth() + 1)
@@ -457,10 +695,18 @@ const users = ref([])
 const vehicles = ref([])
 const usageData = ref([])
 const carTypeStats = ref([])
+const mileageData = ref([])
+const transportCosts = ref([])
 const loading = ref(false)
 
 const showModal = ref(false)
 const modal = ref({})
+
+const showMileageModal = ref(false)
+const mileageModal = ref({})
+
+const showTransportCostModal = ref(false)
+const transportCostModal = ref({})
 
 const currentStock = ref(0)
 const showStockModal = ref(false)
@@ -477,16 +723,27 @@ const daysInMonth = computed(() => {
   return Array.from({ length: days }, (_, i) => i + 1)
 })
 
-// 차량 타입 변경 시
+const isRemiconType = computed(() => {
+  return selectedCarType.value === '지입레미콘' || selectedCarType.value === '자차레미콘'
+})
+
+const remiconVehicles = computed(() => {
+  return vehicles.value.filter(v => v.carType === '지입레미콘' || v.carType === '자차레미콘')
+})
+
+const totalTransportCost = computed(() => {
+  if (transportCosts.value.length === 0) return '-'
+  const total = transportCosts.value.reduce((sum, c) => sum + (c.totalCost || 0), 0)
+  return formatNumber(total) + '원'
+})
+
 const onCarTypeChange = () => {
-  // 차량 타입이 선택되면 이용자 필터 초기화
   if (selectedCarType.value) {
     selectedUserId.value = ''
   }
   loadData()
 }
 
-// 차량을 타입별로 그룹화
 const vehiclesByType = computed(() => {
   const grouped = {
     '지입레미콘': [],
@@ -503,16 +760,13 @@ const vehiclesByType = computed(() => {
   return grouped
 })
 
-// 선택된 차량 타입의 일일 통계
 const dailyStatsForSelectedType = computed(() => {
   if (!selectedCarType.value) return []
 
-  // 해당 타입의 차량 ID들
   const typeVehicleIds = vehicles.value
     .filter(v => v.carType === selectedCarType.value)
     .map(v => v.vehicleId)
 
-  // 날짜별 주유량 집계
   const dailyMap = {}
   daysInMonth.value.forEach(day => {
     dailyMap[day] = 0
@@ -536,25 +790,21 @@ const dailyStatsForSelectedType = computed(() => {
     .sort((a, b) => a.day - b.day)
 })
 
-// 선택된 타입의 총 주유량
 const selectedTypeTotal = computed(() => {
   return dailyStatsForSelectedType.value.reduce((sum, stat) => sum + stat.amount, 0)
 })
 
-// 선택된 타입의 평균 주유량
 const selectedTypeAverage = computed(() => {
   const total = selectedTypeTotal.value
   const days = daysInMonth.value.length
   return days > 0 ? total / days : 0
 })
 
-// 차트에서 가장 큰 값 (높이 계산용)
 const maxDailyAmount = computed(() => {
   if (dailyStatsForSelectedType.value.length === 0) return 1
   return Math.max(...dailyStatsForSelectedType.value.map(s => s.amount), 1)
 })
 
-// 차량 타입 아이콘
 const getCarTypeIcon = (carType) => {
   const icons = {
     '지입레미콘': '🚚',
@@ -669,12 +919,10 @@ const stockValueClass = computed(() => {
 const filteredVehiclesForTable = computed(() => {
   let filtered = vehicles.value
 
-  // 차량 타입 필터
   if (selectedCarType.value) {
     filtered = filtered.filter(v => v.carType === selectedCarType.value)
   }
 
-  // 사용자 필터 (차량 타입이 선택되지 않았을 때만)
   if (!selectedCarType.value && selectedUserId.value) {
     filtered = filtered.filter(v => v.userId === selectedUserId.value)
   }
@@ -682,14 +930,12 @@ const filteredVehiclesForTable = computed(() => {
   return filtered
 })
 
-// 차량 선택시 배정된 사용자가 있는지 확인
 const isVehicleAssigned = computed(() => {
   if (!modal.value.vehicleId) return false
   const vehicle = vehicles.value.find(v => v.vehicleId === modal.value.vehicleId)
   return vehicle && vehicle.userId > 0
 })
 
-// 차량 변경시
 const onVehicleChange = () => {
   const vehicle = vehicles.value.find(v => v.vehicleId === modal.value.vehicleId)
   if (vehicle) {
@@ -721,9 +967,20 @@ const getVehicleDriverName = (vehicle) => {
   return getUserName(vehicle.userId)
 }
 
+const getVehicleCarNum = (vehicleId) => {
+  const vehicle = vehicles.value.find(v => v.vehicleId === vehicleId)
+  return vehicle ? vehicle.carNum : '-'
+}
+
 const getUserName = (userId) => {
   const user = users.value.find(u => u.userId === userId)
   return user ? user.name : ''
+}
+
+const formatInsurance = (vehicleId) => {
+  const vehicle = vehicles.value.find(v => v.vehicleId === vehicleId)
+  if (!vehicle || !vehicle.insuranceStartDate || !vehicle.insuranceEndDate) return '-'
+  return `${vehicle.insuranceStartDate} ~ ${vehicle.insuranceEndDate}`
 }
 
 const getDayName = (day) => {
@@ -847,42 +1104,149 @@ const deleteRecord = async () => {
   }
 }
 
-const formatNumber = (num) => {
-  if (!num) return '0'
-  return num.toLocaleString('ko-KR')
-}
-
-const loadStock = async () => {
-  try {
-    const response = await api.post('/fuel/stock/current')
-    const data = response.data || response
-    currentStock.value = parseFloat(data.totalLiters || 0)
-    cumulativeUsedLiters.value = parseFloat(data.cumulativeUsedLiters || 0)
-  } catch (error) {
-    console.error('재고 조회 실패:', error)
-    cumulativeUsedLiters.value = 0
-    currentStock.value = 0
-  }
-}
-
-const loadCarTypeStats = async () => {
-  try {
-    const response = await api.post('/fuel/stats/by-car-type', {
+const openMileageModal = (mileage = null) => {
+  if (mileage) {
+    mileageModal.value = { ...mileage }
+  } else {
+    mileageModal.value = {
+      mileageId: null,
+      vehicleId: '',
+      userId: '',
       year: selectedYear.value,
-      month: selectedMonth.value
-    })
-    const data = response.data || response
-
-    carTypeStats.value = data.map(stat => ({
-      carType: stat.car_type || stat.carType,
-      fuelCount: parseInt(stat.fuel_count || stat.fuelCount || 0),
-      totalLiter: parseFloat(stat.total_liter || stat.totalLiter || 0),
-      avgLiter: parseFloat(stat.avg_liter || stat.avgLiter || 0)
-    })).filter(stat => stat.totalLiter > 0)
-  } catch (error) {
-    console.error('차량 타입별 통계 조회 실패:', error)
-    carTypeStats.value = []
+      month: selectedMonth.value,
+      startKm: 0,
+      endKm: 0,
+      monthlyKm: 0,
+      commuteDays: 0,
+      workKm: 0
+    }
   }
+  showMileageModal.value = true
+}
+
+const closeMileageModal = () => {
+  showMileageModal.value = false
+  mileageModal.value = {}
+}
+
+const calculateMonthlyKm = () => {
+  const start = mileageModal.value.startKm || 0
+  const end = mileageModal.value.endKm || 0
+  mileageModal.value.monthlyKm = Math.max(0, end - start)
+}
+
+const saveMileageModal = async () => {
+  if (!mileageModal.value.vehicleId) {
+    alert('차량을 선택해주세요')
+    return
+  }
+
+  const vehicle = vehicles.value.find(v => v.vehicleId === mileageModal.value.vehicleId)
+  if (vehicle && vehicle.userId) {
+    mileageModal.value.userId = vehicle.userId
+  }
+
+  try {
+    await api.post('/fuel/vehicle/mileage/save', mileageModal.value)
+    await loadMileageData()
+    closeMileageModal()
+  } catch (error) {
+    alert('저장 중 오류가 발생했습니다: ' + error.message)
+  }
+}
+
+const deleteMileageFromModal = async () => {
+  if (!confirm('정말 삭제하시겠습니까?')) return
+  await deleteMileage(mileageModal.value.mileageId)
+  closeMileageModal()
+}
+
+const deleteMileage = async (mileageId) => {
+  if (!confirm('정말 삭제하시겠습니까?')) return
+
+  try {
+    await api.post('/fuel/vehicle/mileage/delete', { mileageId })
+    await loadMileageData()
+  } catch (error) {
+    alert('삭제 중 오류가 발생했습니다: ' + error.message)
+  }
+}
+
+const openTransportCostModal = (cost = null) => {
+  if (cost) {
+    transportCostModal.value = { ...cost }
+  } else {
+    transportCostModal.value = {
+      costId: null,
+      vehicleId: '',
+      userId: '',
+      year: selectedYear.value,
+      month: selectedMonth.value,
+      transportCost: 0,
+      fuelCost: 0,
+      totalCost: 0
+    }
+  }
+  showTransportCostModal.value = true
+}
+
+const closeTransportCostModal = () => {
+  showTransportCostModal.value = false
+  transportCostModal.value = {}
+}
+
+const onTransportVehicleChange = () => {
+  const vehicle = vehicles.value.find(v => v.vehicleId === transportCostModal.value.vehicleId)
+  if (vehicle && vehicle.userId) {
+    transportCostModal.value.userId = vehicle.userId
+  }
+}
+
+const calculateTotalCost = () => {
+  const transport = transportCostModal.value.transportCost || 0
+  const fuel = transportCostModal.value.fuelCost || 0
+  transportCostModal.value.totalCost = transport + fuel
+}
+
+const saveTransportCostModal = async () => {
+  if (!transportCostModal.value.vehicleId) {
+    alert('차량을 선택해주세요')
+    return
+  }
+
+  const vehicle = vehicles.value.find(v => v.vehicleId === transportCostModal.value.vehicleId)
+  if (vehicle && vehicle.userId) {
+    transportCostModal.value.userId = vehicle.userId
+  }
+
+  try {
+    await api.post('/fuel/transport/cost/save', transportCostModal.value)
+    await loadTransportCosts()
+    closeTransportCostModal()
+  } catch (error) {
+    alert('저장 중 오류가 발생했습니다: ' + error.message)
+  }
+}
+
+const deleteTransportCostFromModal = async () => {
+  if (!confirm('정말 삭제하시겠습니까?')) return
+  await deleteTransportCost(transportCostModal.value.costId)
+  closeTransportCostModal()
+}
+
+const deleteTransportCost = async (costId) => {
+  if (!confirm('정말 삭제하시겠습니까?')) return
+
+  try {
+    await api.post('/fuel/transport/cost/delete', { costId })
+    await loadTransportCosts()
+  } catch (error) {
+    alert('삭제 중 오류가 발생했습니다: ' + error.message)
+  }
+}
+
+const openTransportCostSummary = () => {
+  openTransportCostModal()
 }
 
 const openStockModal = () => {
@@ -924,6 +1288,70 @@ const saveStockModal = async () => {
   }
 }
 
+const formatNumber = (num) => {
+  if (!num) return '0'
+  return num.toLocaleString('ko-KR')
+}
+
+const loadStock = async () => {
+  try {
+    const response = await api.post('/fuel/stock/current')
+    const data = response.data || response
+    currentStock.value = parseFloat(data.totalLiters || 0)
+    cumulativeUsedLiters.value = parseFloat(data.cumulativeUsedLiters || 0)
+  } catch (error) {
+    console.error('재고 조회 실패:', error)
+    cumulativeUsedLiters.value = 0
+    currentStock.value = 0
+  }
+}
+
+const loadCarTypeStats = async () => {
+  try {
+    const response = await api.post('/fuel/stats/by-car-type', {
+      year: selectedYear.value,
+      month: selectedMonth.value
+    })
+    const data = response.data || response
+
+    carTypeStats.value = data.map(stat => ({
+      carType: stat.car_type || stat.carType,
+      fuelCount: parseInt(stat.fuel_count || stat.fuelCount || 0),
+      totalLiter: parseFloat(stat.total_liter || stat.totalLiter || 0),
+      avgLiter: parseFloat(stat.avg_liter || stat.avgLiter || 0)
+    })).filter(stat => stat.totalLiter > 0)
+  } catch (error) {
+    console.error('차량 타입별 통계 조회 실패:', error)
+    carTypeStats.value = []
+  }
+}
+
+const loadMileageData = async () => {
+  try {
+    const response = await api.post('/fuel/vehicle/mileage/list', {
+      year: selectedYear.value,
+      month: selectedMonth.value
+    })
+    mileageData.value = response.data || response
+  } catch (error) {
+    console.error('주행거리 조회 실패:', error)
+    mileageData.value = []
+  }
+}
+
+const loadTransportCosts = async () => {
+  try {
+    const response = await api.post('/fuel/transport/cost/list', {
+      year: selectedYear.value,
+      month: selectedMonth.value
+    })
+    transportCosts.value = response.data || response
+  } catch (error) {
+    console.error('운반비 조회 실패:', error)
+    transportCosts.value = []
+  }
+}
+
 const loadData = async () => {
   loading.value = true
   try {
@@ -942,6 +1370,8 @@ const loadData = async () => {
 
     await loadStock()
     await loadCarTypeStats()
+    await loadMileageData()
+    await loadTransportCosts()
   } catch (error) {
     alert('데이터를 불러오는 중 오류가 발생했습니다: ' + error.message)
   } finally {
@@ -949,15 +1379,61 @@ const loadData = async () => {
   }
 }
 
-const exportToExcel = () => {
-  alert('엑셀 다운로드 기능은 추후 구현 예정입니다')
+// 엑셀 다운로드 함수 (프론트엔드에서 생성)
+const exportToExcel = async () => {
+  try {
+    console.log('📊 엑셀 다운로드 시작...')
+    
+    // API 호출
+    const response = await api.post('/fuel/export/excel', 
+      {
+        year: selectedYear.value,
+        month: selectedMonth.value
+      },
+      {
+        responseType: 'blob'
+      }
+    )
+
+    console.log('✅ 서버 응답 받음')
+
+    // 안전하게 Blob 추출
+    const blobData = response?.data || response
+    
+    if (!blobData) {
+      throw new Error('응답 데이터가 없습니다')
+    }
+
+    console.log('파일 크기:', blobData.size || 0, 'bytes')
+    
+    if (!blobData.size || blobData.size === 0) {
+      throw new Error('파일이 비어있습니다')
+    }
+
+    // 파일 다운로드
+    const filename = `유류사용현황_${selectedYear.value}년_${selectedMonth.value}월.xlsx`
+    const url = window.URL.createObjectURL(blobData)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+
+    console.log('✅ 다운로드 완료!')
+    alert('엑셀 파일 다운로드 완료!')
+
+  } catch (error) {
+    console.error('❌ 오류:', error)
+    alert('엑셀 다운로드 실패: ' + (error?.message || '알 수 없는 오류'))
+  }
 }
 
 onMounted(loadData)
 </script>
 
 <style scoped>
-/* 기존 스타일 + 새로운 스타일 추가 */
 .page-container {
   padding: 1.5rem;
   max-width: 1920px;
@@ -1087,6 +1563,11 @@ onMounted(loadData)
   gap: 0.5rem;
 }
 
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
 .btn-primary {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
@@ -1133,6 +1614,27 @@ onMounted(loadData)
 
 .btn-danger:hover {
   background: #dc2626;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  transform: scale(1.2);
+}
+
+.btn-edit:hover {
+  filter: brightness(1.2);
+}
+
+.btn-delete:hover {
+  filter: brightness(1.2);
 }
 
 .stats-section {
@@ -1205,8 +1707,10 @@ onMounted(loadData)
   color: #f59e0b !important;
 }
 
-/* 일일 통계 섹션 (차량 타입 선택 시) */
-.daily-stats-section {
+.mileage-management-section,
+.transport-cost-section,
+.daily-stats-section,
+.car-type-stats-section {
   background: white;
   border-radius: 1rem;
   padding: 1.5rem;
@@ -1238,6 +1742,134 @@ onMounted(loadData)
   font-weight: 700;
   color: #1e293b;
   margin: 0;
+}
+
+.mileage-table-wrapper {
+  overflow-x: auto;
+}
+
+.mileage-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.mileage-table thead th {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  color: #1e40af;
+  font-weight: 700;
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.mileage-table tbody td {
+  padding: 0.75rem 0.5rem;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.insurance-cell {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.empty-cell {
+  padding: 2rem !important;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.transport-cost-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.transport-cost-card {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.transport-cost-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.cost-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid rgba(146, 64, 14, 0.2);
+}
+
+.vehicle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.vehicle-name {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.driver-name {
+  font-size: 0.875rem;
+  color: #78350f;
+}
+
+.cost-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.cost-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cost-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cost-item.total {
+  padding-top: 0.75rem;
+  border-top: 2px solid rgba(146, 64, 14, 0.2);
+  margin-top: 0.25rem;
+}
+
+.cost-label {
+  font-size: 0.875rem;
+  color: #78350f;
+  font-weight: 600;
+}
+
+.cost-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.cost-item.total .cost-value {
+  font-size: 1.375rem;
+}
+
+.empty-cost-card {
+  padding: 3rem;
+  text-align: center;
+  color: #94a3b8;
+  grid-column: 1 / -1;
 }
 
 .summary-stats {
@@ -1340,15 +1972,6 @@ onMounted(loadData)
   color: #3b82f6;
 }
 
-/* 차량 타입별 통계 섹션 */
-.car-type-stats-section {
-  background: white;
-  border-radius: 1rem;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 0.75rem;
-}
-
 .car-type-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -1409,6 +2032,125 @@ onMounted(loadData)
   font-size: 1.125rem;
   font-weight: 700;
   color: #92400e;
+}
+
+.selected-user-info {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  border-left: 4px solid #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.user-info-header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.user-name-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-width: 150px;
+}
+
+.badge-icon {
+  font-size: 1.5rem;
+}
+
+.badge-text {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.user-stats-grid {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.user-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-width: 120px;
+}
+
+.user-stat-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.user-stat-value {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #3b82f6;
+}
+
+.user-vehicles-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.vehicles-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.vehicles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.vehicle-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.vehicle-bar {
+  flex: 1;
+  height: 24px;
+  background: #e2e8f0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.vehicle-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+  transition: width 0.3s ease;
+}
+
+.vehicle-amount {
+  min-width: 90px;
+  text-align: right;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #3b82f6;
 }
 
 .table-section {
@@ -1480,12 +2222,6 @@ onMounted(loadData)
   align-items: center;
 }
 
-.driver-name {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #92400e;
-}
-
 .car-number {
   font-size: 0.9375rem;
   font-weight: 700;
@@ -1552,15 +2288,6 @@ onMounted(loadData)
 .day-name.saturday {
   color: #3b82f6;
   font-weight: 600;
-}
-
-.date-col.compact .day-number {
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.date-col.compact .day-name {
-  font-size: 0.65rem;
 }
 
 .simple-cell {
@@ -1748,342 +2475,5 @@ onMounted(loadData)
 
 .text-danger {
   color: #ef4444;
-}
-
-.selected-user-info {
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
-  border-left: 4px solid #3b82f6;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
-}
-
-.user-info-header {
-  display: flex;
-  align-items: center;
-  gap: 2rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.user-name-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1.25rem;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  min-width: 150px;
-}
-
-.badge-icon {
-  font-size: 1.5rem;
-}
-
-.badge-text {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.user-stats-grid {
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.user-stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.75rem 1rem;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  min-width: 120px;
-}
-
-.user-stat-label {
-  font-size: 0.75rem;
-  color: #64748b;
-  font-weight: 600;
-}
-
-.user-stat-value {
-  font-size: 1.375rem;
-  font-weight: 700;
-  color: #3b82f6;
-}
-
-.user-vehicles-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.vehicles-label {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.vehicles-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.vehicle-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.vehicle-name {
-  min-width: 120px;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.vehicle-bar {
-  flex: 1;
-  height: 24px;
-  background: #e2e8f0;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  position: relative;
-}
-
-.vehicle-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
-  transition: width 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 0.5rem;
-}
-
-.vehicle-amount {
-  min-width: 90px;
-  text-align: right;
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: #3b82f6;
-}
-
-.daily-stats-section {
-  background: white;
-  border-radius: 1rem;
-  padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 0.75rem;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #f1f5f9;
-}
-
-.header-content {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.type-icon {
-  font-size: 2.5rem;
-  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.1));
-}
-
-.section-title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #1e293b;
-  margin: 0;
-}
-
-.summary-stats {
-  display: flex;
-  gap: 2rem;
-  align-items: center;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  padding: 1rem 1.5rem;
-  border-radius: 0.75rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.summary-item {
-  font-size: 1rem;
-  color: #64748b;
-}
-
-.summary-item strong {
-  color: #1e293b;
-  margin-right: 0.5rem;
-  font-size: 1.125rem;
-}
-
-.daily-stats-chart {
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border-radius: 1rem;
-  padding: 2rem;
-  border: 2px solid #e2e8f0;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
-}
-
-.chart-wrapper {
-  display: flex;
-  gap: 6px;
-  align-items: flex-end;
-  height: 450px;
-  padding: 1rem 0.5rem;
-  background: linear-gradient(to top, #f8fafc 0%, #ffffff 100%);
-  border-radius: 0.5rem;
-  position: relative;
-}
-
-/* 차트 배경 그리드 라인 (선택사항) */
-.chart-wrapper::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    linear-gradient(to top, #e2e8f0 1px, transparent 1px);
-  background-size: 100% 25%;
-  pointer-events: none;
-  opacity: 0.3;
-}
-
-.chart-bar-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  min-width: 30px;
-  position: relative;
-}
-
-.chart-bar-wrapper {
-  flex: 1;
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
-  position: relative;
-}
-
-.chart-bar {
-  width: 100%;
-  border-radius: 0.5rem 0.5rem 0 0;
-  position: relative;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 0.5rem;
-  box-shadow: 0 -4px 12px rgba(59, 130, 246, 0.3),
-              0 2px 8px rgba(59, 130, 246, 0.2);
-  cursor: pointer;
-}
-
-.chart-bar:hover {
-  filter: brightness(1.2);
-  box-shadow: 0 -8px 20px rgba(59, 130, 246, 0.5),
-              0 4px 12px rgba(59, 130, 246, 0.3);
-  transform: translateY(-4px) scaleX(1.05);
-}
-
-/* 0L인 경우 */
-.chart-bar[data-empty="true"] {
-  background: linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%) !important;
-  box-shadow: 0 -2px 4px rgba(148, 163, 184, 0.2);
-  opacity: 0.4;
-}
-
-.chart-bar[data-empty="true"]:hover {
-  filter: brightness(1.1);
-  transform: translateY(-2px);
-}
-
-.bar-value {
-  font-size: 0.875rem;
-  font-weight: 800;
-  color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  white-space: nowrap;
-  background: rgba(0, 0, 0, 0.15);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  backdrop-filter: blur(4px);
-}
-
-.chart-label {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.5rem 0.25rem;
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  min-width: 45px;
-}
-
-.day-num {
-  font-size: 1rem;
-  font-weight: 800;
-  color: #1e293b;
-}
-
-.day-name-small {
-  font-size: 0.75rem;
-  color: #64748b;
-  font-weight: 600;
-}
-
-.day-name-small.sunday {
-  color: #ef4444;
-  font-weight: 700;
-}
-
-.day-name-small.saturday {
-  color: #3b82f6;
-  font-weight: 700;
-}
-
-/* 반응형 */
-@media (max-width: 1400px) {
-  .chart-wrapper {
-    height: 380px;
-  }
-}
-
-@media (max-width: 1024px) {
-  .chart-wrapper {
-    height: 320px;
-    gap: 4px;
-  }
-  
-  .chart-bar-container {
-    min-width: 25px;
-  }
 }
 </style>

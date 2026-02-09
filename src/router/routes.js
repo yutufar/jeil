@@ -33,7 +33,7 @@ const routes = [
       },
       {
         path: "log/remicon",
-        name: "레미콘 일보",
+        name: "레미콘 운반비",
         component: RemiconLog,
       },
       {
