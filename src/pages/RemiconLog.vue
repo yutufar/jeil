@@ -393,8 +393,8 @@
           <div class="mb-3">
             <label class="form-label">단가 *</label>
             <input type="number" v-model.number="modal.unitPrice" @input="calculateDeliveryFee"
-              placeholder="예: 69300" class="custom-input" step="100" min="0" />
-            <div class="input-hint">기본 단가: 69,300원</div>
+              placeholder="예: 71500" class="custom-input" step="100" min="0" />
+            <div class="input-hint">기본 단가: 71,500원</div>
           </div>
 
           <div class="mb-3">
@@ -689,7 +689,7 @@ const openAddModal = () => {
     vehicleId: '',
     userId: '',
     tripCount: 0,
-    unitPrice: 69300,
+    unitPrice: 71500,
     deliveryFee: 0,
     distanceKm: 0,
     memo: ''
@@ -1017,7 +1017,7 @@ onMounted(loadData)
 .page-title {
   font-size: 1.3rem;
   font-weight: 700;
-  color: #1e293b;
+  color: #ffffff;
   margin: 0;
 }
 
@@ -1093,7 +1093,6 @@ onMounted(loadData)
 
 .custom-input {
   width: 100%;
-  padding: 0.625rem 1rem;
   font-size: 0.9375rem;
   border: 1px solid #e2e8f0;
   border-radius: 0.5rem;

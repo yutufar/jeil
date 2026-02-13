@@ -1447,7 +1447,7 @@ onMounted(loadData)
 .page-title {
   font-size: 1.3rem;
   font-weight: 700;
-  color: #1e293b;
+  color: #ffffff;
   margin: 0;
 }
 
@@ -1524,7 +1524,6 @@ onMounted(loadData)
 
 .custom-input {
   width: 100%;
-  padding: 0.625rem 1rem;
   font-size: 0.9375rem;
   border: 1px solid #e2e8f0;
   border-radius: 0.5rem;

@@ -7,6 +7,7 @@ const UserSetting = () => import("@/pages/UserSetting.vue");
 const VehicleSetting = () => import("@/pages/VehicleSetting.vue");
 const RemiconLog = () => import("@/pages/RemiconLog.vue");
 const AggregateLog = () => import("@/pages/AggregateLog.vue");
+const MaterialStock = () => import("@/pages/MaterialStock.vue");
 const VacationList = () => import("@/pages/VacationList.vue");
 const FuelUsage = () => import("@/pages/FuelUsage.vue");
 
@@ -40,6 +41,11 @@ const routes = [
         path: "log/aggregate",
         name: "골재 일보",
         component: AggregateLog,
+      },
+      {
+        path: "material/stock",
+        name: "원자재 재고 관리",
+        component: MaterialStock,
       },
       {
         path: "vacation",
