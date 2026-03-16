@@ -7,7 +7,6 @@
       </button>
     </div>
 
-    <!-- 기존 HTML 그대로... -->
     <!-- 월 선택 -->
     <div class="month-selector">
       <select v-model="selectedYear" @change="loadData">
@@ -182,7 +181,7 @@ const downloadExcel = async () => {
   try {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('자재현황');
-    
+
     // 컬럼 너비 설정
     worksheet.columns = [
       { width: 20 },
@@ -191,7 +190,7 @@ const downloadExcel = async () => {
       { width: 18 },
       { width: 18 }
     ];
-    
+
     // 공통 테두리 스타일
     const allBorders = {
       top: { style: 'thin' },
@@ -199,9 +198,9 @@ const downloadExcel = async () => {
       bottom: { style: 'thin' },
       right: { style: 'thin' }
     };
-    
+
     let currentRow = 1;
-    
+
     // 메인 제목
     const titleRow = worksheet.getRow(currentRow);
     titleRow.getCell(1).value = `자재 현황 대시보드 - ${selectedYear.value}년 ${selectedMonth.value}월`;
@@ -212,8 +211,10 @@ const downloadExcel = async () => {
     titleRow.getCell(1).border = allBorders;
     titleRow.height = 25;
     currentRow += 2;
-    
-    // 1. 레미콘 판매량
+
+    // ──────────────────────────────────────────────
+    //  1. 레미콘 판매량
+    // ──────────────────────────────────────────────
     const section1TitleRow = worksheet.getRow(currentRow);
     section1TitleRow.getCell(1).value = '레미콘 판매량';
     worksheet.mergeCells(currentRow, 1, currentRow, 4);
@@ -223,7 +224,7 @@ const downloadExcel = async () => {
     section1TitleRow.getCell(1).border = allBorders;
     section1TitleRow.height = 20;
     currentRow++;
-    
+
     const section1HeaderRow = worksheet.getRow(currentRow);
     ['구분', '상차도', '제품 (원)', '생산량 (㎥)'].forEach((header, idx) => {
       const cell = section1HeaderRow.getCell(idx + 1);
@@ -235,7 +236,7 @@ const downloadExcel = async () => {
     });
     section1HeaderRow.height = 20;
     currentRow++;
-    
+
     const section1DataRow = worksheet.getRow(currentRow);
     [
       `${selectedMonth.value}월`,
@@ -253,9 +254,18 @@ const downloadExcel = async () => {
       }
     });
     section1DataRow.height = 20;
-    currentRow += 3;
-    
-    // 2. 월별 자재 사용량
+    currentRow++;
+
+    // ── 사진 삽입용 여백 4행 ──────────────────────────
+    for (let i = 0; i < 4; i++) {
+      worksheet.getRow(currentRow).height = 40;  // 각 행 높이를 넉넉하게
+      currentRow++;
+    }
+    currentRow += 3; // 기존 3칸 간격도 유지
+
+    // ──────────────────────────────────────────────
+    //  2. 월별 자재 사용량
+    // ──────────────────────────────────────────────
     const section2TitleRow = worksheet.getRow(currentRow);
     section2TitleRow.getCell(1).value = `${selectedMonth.value}월 자재 사용량`;
     worksheet.mergeCells(currentRow, 1, currentRow, 4);
@@ -265,7 +275,7 @@ const downloadExcel = async () => {
     section2TitleRow.getCell(1).border = allBorders;
     section2TitleRow.height = 20;
     currentRow++;
-    
+
     const section2HeaderRow = worksheet.getRow(currentRow);
     ['재료명', '사용량', '단가 (원)', '금액 (원)'].forEach((header, idx) => {
       const cell = section2HeaderRow.getCell(idx + 1);
@@ -277,7 +287,7 @@ const downloadExcel = async () => {
     });
     section2HeaderRow.height = 20;
     currentRow++;
-    
+
     materialUsage.value.forEach(item => {
       const dataRow = worksheet.getRow(currentRow);
       [
@@ -298,7 +308,7 @@ const downloadExcel = async () => {
       dataRow.height = 20;
       currentRow++;
     });
-    
+
     const section2TotalRow = worksheet.getRow(currentRow);
     ['합계', '', '', Number(totalUsageAmount.value)].forEach((value, idx) => {
       const cell = section2TotalRow.getCell(idx + 1);
@@ -313,8 +323,10 @@ const downloadExcel = async () => {
     });
     section2TotalRow.height = 20;
     currentRow += 3;
-    
-    // 3. 월별 재고 현황
+
+    // ──────────────────────────────────────────────
+    //  3. 월별 재고 현황
+    // ──────────────────────────────────────────────
     const section3TitleRow = worksheet.getRow(currentRow);
     section3TitleRow.getCell(1).value = `${selectedMonth.value}월 재고 현황`;
     worksheet.mergeCells(currentRow, 1, currentRow, 5);
@@ -324,7 +336,7 @@ const downloadExcel = async () => {
     section3TitleRow.getCell(1).border = allBorders;
     section3TitleRow.height = 20;
     currentRow++;
-    
+
     const section3HeaderRow = worksheet.getRow(currentRow);
     ['재료명', '전월이월', '입고', '출고', '재고'].forEach((header, idx) => {
       const cell = section3HeaderRow.getCell(idx + 1);
@@ -336,7 +348,7 @@ const downloadExcel = async () => {
     });
     section3HeaderRow.height = 20;
     currentRow++;
-    
+
     stockSummary.value.forEach(item => {
       const dataRow = worksheet.getRow(currentRow);
       [
@@ -359,8 +371,10 @@ const downloadExcel = async () => {
       currentRow++;
     });
     currentRow += 2;
-    
-    // 4. 원자재 단가
+
+    // ──────────────────────────────────────────────
+    //  4. 원자재 단가
+    // ──────────────────────────────────────────────
     const section4TitleRow = worksheet.getRow(currentRow);
     section4TitleRow.getCell(1).value = '원자재 단가';
     worksheet.mergeCells(currentRow, 1, currentRow, 4);
@@ -370,7 +384,7 @@ const downloadExcel = async () => {
     section4TitleRow.getCell(1).border = allBorders;
     section4TitleRow.height = 20;
     currentRow++;
-    
+
     const section4HeaderRow = worksheet.getRow(currentRow);
     ['품목', '단가 (원)', '운반비 (원)', '합계 (원)'].forEach((header, idx) => {
       const cell = section4HeaderRow.getCell(idx + 1);
@@ -382,7 +396,7 @@ const downloadExcel = async () => {
     });
     section4HeaderRow.height = 20;
     currentRow++;
-    
+
     unitPrices.value.forEach(item => {
       const dataRow = worksheet.getRow(currentRow);
       [
@@ -403,14 +417,14 @@ const downloadExcel = async () => {
       dataRow.height = 20;
       currentRow++;
     });
-    
+
     // 파일 저장
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(blob, `자재현황_${selectedYear.value}년${selectedMonth.value}월.xlsx`);
-    
+
     alert('엑셀 파일이 다운로드되었습니다');
-    
+
   } catch (error) {
     console.error('엑셀 다운로드 오류:', error);
     alert('엑셀 다운로드 중 오류가 발생했습니다');
@@ -421,7 +435,6 @@ onMounted(loadData);
 </script>
 
 <style scoped>
-/* 기존 스타일 그대로 */
 .dashboard-container {
   padding: 2rem;
   max-width: 1400px;

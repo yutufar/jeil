@@ -999,9 +999,6 @@ const exportToExcel = async () => {
 
 // ─────────────────────────────────────────────────────────────
 //  신규 월간 현황 엑셀 다운로드
-//  - 전체 기사 선택 시에만 사용 가능
-//  - 시트 1: 전체 현황 (날짜순 전체 목록 + 비고 강조)
-//  - 시트 2~N: 차량별 상세 (일별 내역 + 합계)
 // ─────────────────────────────────────────────────────────────
 const exportMonthlyReport = async () => {
   if (selectedUserId.value) {
@@ -1035,7 +1032,6 @@ const exportMonthlyReport = async () => {
     const totalFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFD966' } }
     const evenRowFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F9FF' } }
     const memoHighlightFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF0CC' } }
-    // 물차·폐수처럼 특수 비고는 별도 강조색
     const specialMemoFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCCCC' } }
 
     const SPECIAL_MEMO_KEYWORDS = ['물차', '폐수', '특수', '불출', '반납', '슬럼프']
@@ -1052,24 +1048,20 @@ const exportMonthlyReport = async () => {
     const totalDaysPivot = new Date(year, month, 0).getDate()
     const dayNamesPivot = ['일', '월', '화', '수', '목', '금', '토']
 
-    // 고정 왼쪽 컬럼: 차량번호(1), 기사명(2), 업체명(3) → 이후 날짜 컬럼들
-    // 날짜 컬럼 시작 인덱스 = 4
-    // 합계 컬럼들: 총회수, 총운반비 (마지막 2컬럼)
     const DATE_COL_START = 4
     const TOTAL_TRIPS_COL = DATE_COL_START + totalDaysPivot
     const TOTAL_FEE_COL = TOTAL_TRIPS_COL + 1
 
-    // 열 너비 설정
     const pivotCols = [
-      { width: 10 },   // 1: 차량번호
-      { width: 8 },    // 2: 기사명
-      { width: 12 },   // 3: 업체명
+      { width: 10 },
+      { width: 8 },
+      { width: 12 },
     ]
     for (let d = 1; d <= totalDaysPivot; d++) {
-      pivotCols.push({ width: 5.5 })  // 날짜 열 (좁게)
+      pivotCols.push({ width: 5.5 })
     }
-    pivotCols.push({ width: 8 })   // 총 회수
-    pivotCols.push({ width: 13 })  // 총 운반비
+    pivotCols.push({ width: 8 })
+    pivotCols.push({ width: 13 })
     wsPivot.columns = pivotCols
 
     // ── 제목 행 (1행) ──────────────────────────────────────
@@ -1081,7 +1073,7 @@ const exportMonthlyReport = async () => {
     pivotTitle.alignment = { horizontal: 'center', vertical: 'middle' }
     wsPivot.getRow(1).height = 34
 
-    // ── 요일 보조 행 (2행): 날짜 위에 요일 표시 ───────────
+    // ── 요일 보조 행 (2행) ───────────────────────────────
     const dayOfWeekRow = wsPivot.getRow(2)
     ;['차량번호', '기사명', '업체명'].forEach((h, i) => {
       const cell = dayOfWeekRow.getCell(i + 1)
@@ -1146,7 +1138,6 @@ const exportMonthlyReport = async () => {
       cell.alignment = { horizontal: 'center', vertical: 'middle' }
       applyBorder(cell)
     }
-    // 2행과 3행을 병합해서 헤더를 단순화 (차량번호/기사명/업체명은 2~3행 병합)
     ;[1, 2, 3].forEach(col => {
       wsPivot.mergeCells(2, col, 3, col)
     })
@@ -1156,7 +1147,6 @@ const exportMonthlyReport = async () => {
     dateHeaderRow.height = 20
 
     // ── 기사별 데이터 행 생성 ─────────────────────────────
-    // 차량번호 기준으로 정렬된 기사 목록
     const pivotDrivers = [...new Set(deliveryData.value.map(d => getVehicleCarNum(d.vehicleId)))]
       .sort((a, b) => a.localeCompare(b, 'ko-KR'))
 
@@ -1177,12 +1167,10 @@ const exportMonthlyReport = async () => {
         ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF5FF' } }
         : { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F8F8' } }
 
-      // 이 기사에 비고가 하나라도 있으면 메모 행 추가
       const hasMemo = carItems.some(d => d.memo && d.memo.trim() !== '')
       const dataRowNum = pivotRowIdx
       const memoRowNum = hasMemo ? pivotRowIdx + 1 : null
 
-      // 좌측 고정 정보 (차량번호, 기사명, 업체명)
       const leftData = [carNum, driverName, company]
       leftData.forEach((val, ci) => {
         const cell = wsPivot.getRow(dataRowNum).getCell(ci + 1)
@@ -1204,7 +1192,6 @@ const exportMonthlyReport = async () => {
         }
       })
 
-      // 날짜별 데이터 채우기
       let totalTripsRow = 0
       let totalFeeRow = 0
 
@@ -1221,7 +1208,6 @@ const exportMonthlyReport = async () => {
           return iDate === dateStr3
         })
 
-        // 데이터 행 (회수)
         const dataCell = wsPivot.getRow(dataRowNum).getCell(col)
         if (dayItems.length > 0) {
           const trips = dayItems.reduce((s, x) => s + (x.tripCount || 0), 0)
@@ -1244,7 +1230,6 @@ const exportMonthlyReport = async () => {
           dataCell.alignment = { horizontal: 'center', vertical: 'middle' }
           applyBorder(dataCell)
 
-          // 메모 행
           if (hasMemo) {
             const memoCell = wsPivot.getRow(memoRowNum).getCell(col)
             if (memoText) {
@@ -1265,7 +1250,6 @@ const exportMonthlyReport = async () => {
             applyBorder(memoCell)
           }
         } else {
-          // 빈 날짜
           dataCell.fill = isSun
             ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF5F5' } }
             : isSat
@@ -1286,7 +1270,6 @@ const exportMonthlyReport = async () => {
         }
       }
 
-      // 총 회수 / 총 운반비 합계 셀
       const totTripsCell = wsPivot.getRow(dataRowNum).getCell(TOTAL_TRIPS_COL)
       totTripsCell.value = totalTripsRow
       totTripsCell.font = { bold: true, size: 11 }
@@ -1306,7 +1289,6 @@ const exportMonthlyReport = async () => {
       wsPivot.getRow(dataRowNum).height = 20
       if (hasMemo) {
         wsPivot.getRow(memoRowNum).height = 14
-        // 메모 행의 합계 컬럼은 비워두기
         ;[TOTAL_TRIPS_COL, TOTAL_FEE_COL].forEach(col => {
           const c = wsPivot.getRow(memoRowNum).getCell(col)
           c.fill = totalFill
@@ -1354,8 +1336,6 @@ const exportMonthlyReport = async () => {
 
     const pivotGrandTripsCell = pivotTotRow.getCell(TOTAL_TRIPS_COL)
     pivotGrandTripsCell.value = grandTotalTrips
-    pivotGrandTripsCell.font = { bold: true, size: 11 }
-    pivotGrandTripsCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD6000040' } }
     pivotGrandTripsCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6600' } }
     pivotGrandTripsCell.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } }
     pivotGrandTripsCell.alignment = { horizontal: 'center', vertical: 'middle' }
@@ -1371,7 +1351,7 @@ const exportMonthlyReport = async () => {
     applyBorder(pivotGrandFeeCell, 'medium')
     pivotTotRow.height = 24
 
-    // ── 피벗 시트 틀 고정 (3행, 3열 고정) ─────────────────
+    // ── 피벗 시트 틀 고정 ─────────────────────────────────
     wsPivot.views = [{
       state: 'frozen',
       xSplit: 3,
@@ -1384,13 +1364,12 @@ const exportMonthlyReport = async () => {
     // ════════════════════════════════════════════════════════
     const ws1 = workbook.addWorksheet('전체 현황')
 
-    // 열 너비
     ws1.columns = [
       { width: 14 },  // A: 일자
       { width: 12 },  // B: 차량번호
       { width: 10 },  // C: 기사명
       { width: 8 },   // D: 회수
-      { width: 12 },  // E: 단가
+      { width: 12 },  // E: 단가 (부가세 제외)
       { width: 16 },  // F: 운반비
       { width: 10 },  // G: 거리(km)
       { width: 30 },  // H: 비고
@@ -1442,7 +1421,7 @@ const exportMonthlyReport = async () => {
         getVehicleCarNum(item.vehicleId),
         getUserName(item.userId),
         item.tripCount,
-        item.unitPrice,
+        Math.round(item.unitPrice / 1.1),   // ← 부가세 제외 단가 (65,000)
         item.deliveryFee,
         item.distanceKm ? Math.round(item.distanceKm * 10) / 10 : 0,
         memo || '-'
@@ -1452,7 +1431,6 @@ const exportMonthlyReport = async () => {
         const cell = row.getCell(ci + 1)
         cell.value = v
 
-        // 비고 셀은 메모가 있으면 배경색 강조
         if (ci === 7) {
           cell.font = hasSpecialMemo
             ? { bold: true, size: 10, color: { argb: 'FFC00000' } }
@@ -1470,7 +1448,6 @@ const exportMonthlyReport = async () => {
           }
         }
 
-        // 숫자 포맷
         if (ci === 4 || ci === 5) cell.numFmt = '#,##0'
         if (ci === 6) cell.numFmt = '#,##0.0'
 
@@ -1509,7 +1486,7 @@ const exportMonthlyReport = async () => {
     })
     totalRow1.height = 26
 
-    // ── 비고 범례 (두 행 아래) ──────────────────────────────
+    // ── 비고 범례 ──────────────────────────────────────────
     const legendRow = dataRowIdx + 2
     ws1.mergeCells(legendRow, 1, legendRow, 8)
     const legendCell = ws1.getCell(`A${legendRow}`)
@@ -1525,18 +1502,17 @@ const exportMonthlyReport = async () => {
     const ws2 = workbook.addWorksheet('차량별 집계')
 
     ws2.columns = [
-      { width: 14 },  // A: 차량번호
-      { width: 12 },  // B: 기사명
-      { width: 14 },  // C: 업체명
-      { width: 10 },  // D: 총 회수
-      { width: 16 },  // E: 총 운반비
-      { width: 12 },  // F: 공급가액
-      { width: 10 },  // G: 세액
-      { width: 12 },  // H: 총 거리(km)
-      { width: 8 },   // I: 건수
+      { width: 14 },
+      { width: 12 },
+      { width: 14 },
+      { width: 10 },
+      { width: 16 },
+      { width: 12 },
+      { width: 10 },
+      { width: 12 },
+      { width: 8 },
     ]
 
-    // 제목
     ws2.mergeCells('A1:I1')
     const title2 = ws2.getCell('A1')
     title2.value = `🚛 차량별 운반비 집계  [${monthStr}]`
@@ -1545,7 +1521,6 @@ const exportMonthlyReport = async () => {
     title2.alignment = { horizontal: 'center', vertical: 'middle' }
     ws2.getRow(1).height = 36
 
-    // 헤더
     const headers2 = ['차량번호', '기사명', '업체명', '총 회수', '총 운반비', '공급가액', '세 액', '총 거리(km)', '건수']
     const hRow2 = ws2.getRow(2)
     headers2.forEach((h, i) => {
@@ -1558,7 +1533,6 @@ const exportMonthlyReport = async () => {
     })
     hRow2.height = 24
 
-    // 차량별 집계 데이터
     const carSummaryMap = {}
     deliveryData.value.forEach(item => {
       const carNum = getVehicleCarNum(item.vehicleId)
@@ -1609,7 +1583,6 @@ const exportMonthlyReport = async () => {
       rowIdx2++
     })
 
-    // 차량별 집계 합계 행
     const totRow2 = ws2.getRow(rowIdx2)
     ws2.mergeCells(rowIdx2, 1, rowIdx2, 3)
     const tl2 = totRow2.getCell(1)
@@ -1646,7 +1619,7 @@ const exportMonthlyReport = async () => {
     totRow2.height = 26
 
     // ════════════════════════════════════════════════════════
-    //  시트 3~N: 차량별 일일 상세 (데이터 있는 차량만)
+    //  시트 3~N: 차량별 일일 상세
     // ════════════════════════════════════════════════════════
     const allCarNums = [...new Set(deliveryData.value.map(d => getVehicleCarNum(d.vehicleId)))].sort((a, b) =>
       a.localeCompare(b, 'ko-KR')
@@ -1664,16 +1637,15 @@ const exportMonthlyReport = async () => {
       const wsC = workbook.addWorksheet(sheetName)
 
       wsC.columns = [
-        { width: 14 },  // A: 일자
-        { width: 8 },   // B: 요일
-        { width: 8 },   // C: 회수
-        { width: 12 },  // D: 단가
-        { width: 16 },  // E: 운반비
-        { width: 10 },  // F: 거리(km)
-        { width: 30 },  // G: 비고
+        { width: 14 },
+        { width: 8 },
+        { width: 8 },
+        { width: 12 },
+        { width: 16 },
+        { width: 10 },
+        { width: 30 },
       ]
 
-      // 차량 제목
       const info = driverInfo[carNum]
       wsC.mergeCells('A1:G1')
       const cTitle = wsC.getCell('A1')
@@ -1683,7 +1655,6 @@ const exportMonthlyReport = async () => {
       cTitle.alignment = { horizontal: 'center', vertical: 'middle' }
       wsC.getRow(1).height = 32
 
-      // 기사 정보 행
       wsC.mergeCells('A2:G2')
       const infoCell = wsC.getCell('A2')
       infoCell.value = `은행: ${info?.bank || '-'}   |   계좌번호: ${info?.account || '-'}   |   FAX: ${info?.fax || '-'}`
@@ -1692,7 +1663,6 @@ const exportMonthlyReport = async () => {
       infoCell.alignment = { horizontal: 'center', vertical: 'middle' }
       wsC.getRow(2).height = 20
 
-      // 헤더
       const headersC = ['일자', '요일', '회수', '단가', '운반비', '거리(km)', '비고']
       const hRowC = wsC.getRow(3)
       headersC.forEach((h, i) => {
@@ -1705,7 +1675,6 @@ const exportMonthlyReport = async () => {
       })
       hRowC.height = 22
 
-      // 일별 데이터: 해당 월 전체 날짜 표시 (빈 날짜도 표시)
       const totalDays = new Date(year, month, 0).getDate()
       const dayNames = ['일', '월', '화', '수', '목', '금', '토']
       let rowIdxC = 4
@@ -1723,7 +1692,6 @@ const exportMonthlyReport = async () => {
         const isSaturday = dateObj2.getDay() === 6
 
         if (dayData.length === 0) {
-          // 빈 날짜
           const row = wsC.getRow(rowIdxC)
           const dateCell = row.getCell(1)
           dateCell.value = `${month}/${String(day).padStart(2, '0')}`
@@ -1746,7 +1714,6 @@ const exportMonthlyReport = async () => {
           }
           row.height = 16
         } else {
-          // 데이터 있는 날짜 (한 날짜에 여러 건 있을 경우 모두 표시)
           dayData.forEach((item, di) => {
             const row = wsC.getRow(rowIdxC)
             const memo = item.memo || ''
@@ -1756,7 +1723,7 @@ const exportMonthlyReport = async () => {
               di === 0 ? `${month}/${String(day).padStart(2, '0')}` : '',
               di === 0 ? dayName : '',
               item.tripCount,
-              item.unitPrice,
+              Math.round(item.unitPrice / 1.1),   // ← 부가세 제외 단가 (65,000)
               item.deliveryFee,
               item.distanceKm ? Math.round(item.distanceKm * 10) / 10 : 0,
               memo || '-'
@@ -1767,7 +1734,6 @@ const exportMonthlyReport = async () => {
               cell.value = v
 
               if (ci === 6) {
-                // 비고
                 cell.font = hasSpecial
                   ? { bold: true, size: 10, color: { argb: 'FFC00000' } }
                   : { size: 10 }
@@ -1784,12 +1750,11 @@ const exportMonthlyReport = async () => {
             row.height = hasSpecial ? 22 : 18
             rowIdxC++
           })
-          continue  // rowIdxC는 이미 증가됨
+          continue
         }
         rowIdxC++
       }
 
-      // 차량별 합계 행
       const cTotRow = wsC.getRow(rowIdxC)
       wsC.mergeCells(rowIdxC, 1, rowIdxC, 2)
       const cTotLabel = cTotRow.getCell(1)
@@ -1823,7 +1788,6 @@ const exportMonthlyReport = async () => {
       })
       cTotRow.height = 26
 
-      // 세금계산서 요약 (차량별 시트 하단)
       const taxRowStart = rowIdxC + 2
       wsC.mergeCells(taxRowStart, 1, taxRowStart, 7)
       const taxTitle = wsC.getCell(`A${taxRowStart}`)
@@ -1883,7 +1847,6 @@ onMounted(loadData)
 </script>
 
 <style scoped>
-/* 이전과 동일한 스타일 */
 .page-container {
   padding: 1.5rem;
   max-width: 1920px;
@@ -2033,7 +1996,6 @@ onMounted(loadData)
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
 }
 
-/* 월간현황 버튼 스타일 */
 .btn-monthly {
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   color: white;
@@ -2297,9 +2259,6 @@ onMounted(loadData)
   color: #dc2626;
   font-weight: 700;
   font-size: 1rem;
-}
-
-.summary-table.daily-table {
 }
 
 .summary-table .date-cell {
