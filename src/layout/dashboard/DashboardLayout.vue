@@ -9,7 +9,9 @@
         <sidebar-link to="/material/stock" name="원자재 재고 관리" icon="tim-icons icon-bank"/>
         <sidebar-link to="/vacation" name="휴가 관리" icon="tim-icons icon-calendar-60"/>
         <sidebar-link to="/log/remicon" name="레미콘 운반비" icon="tim-icons icon-delivery-fast"/>
+        <sidebar-link to="/log/goljae" name="골재 운반비" icon="tim-icons icon-cart"/>
         <sidebar-link to="/fuel-usage" name="유류비 관리" icon="tim-icons icon-coins"/>
+        <sidebar-link to="/setting/accounts" name="계좌번호 관리" icon="tim-icons icon-bank"/>
       </template>
     </side-bar>
 

@@ -263,28 +263,21 @@
                 <tr v-for="item in stockList" :key="item.stockId" class="data-row">
                   <td class="text-center">{{ formatDate(item.workDate) }}</td>
                   <td class="text-center">{{ item.materialName }}</td>
-
-                  <!-- 입고: 실제 톤 수 -->
                   <td class="text-right">
                     <span v-if="item.incomingQty > 0" class="text-success">
                       +{{ formatNumber(item.incomingQty) }}
                     </span>
                     <span v-else>-</span>
                   </td>
-
-                  <!-- 출고: 이미 비율로 저장되어 있으므로 그대로 표시 -->
                   <td class="text-right">
                     <span v-if="item.outgoingQty > 0" class="text-danger">
                       -{{ formatNumber(item.outgoingQty) }}
                     </span>
                     <span v-else>-</span>
                   </td>
-
-                  <!-- 현재고: 실제 톤 수 -->
                   <td class="text-right font-weight-bold">
                     {{ formatNumber(item.currentStock) }}
                   </td>
-
                   <td>{{ item.memo || '-' }}</td>
                 </tr>
               </tbody>
@@ -295,9 +288,8 @@
     </div>
 
     <!-- 월별 요약 탭 -->
-    <!-- 월별 요약 탭 부분을 다음과 같이 수정 -->
     <div v-show="activeTab === 'summary'">
-      <!-- 전월이월 설정 카드 추가 -->
+      <!-- 전월이월 설정 카드 -->
       <div class="card-section">
         <div class="card-header">
           <h4 class="card-title">📝 전월이월 설정</h4>
@@ -352,7 +344,7 @@
         </div>
       </div>
 
-      <!-- 기존 월별 요약 카드 -->
+      <!-- 월별 요약 카드 -->
       <div class="card-section mt-4">
         <div class="card-header">
           <h4 class="card-title">월별 재고 요약</h4>
@@ -433,23 +425,45 @@ const incomingList = ref([]);
 const stockList = ref([]);
 const summaryList = ref([]);
 
-const defaultPrices = {
-  'G1': { unitPrice: 18000, supplier: '해광산업개발', capacity: 17 },      // 자갈25MM (13,000 + 5,000)
-  'S1': { unitPrice: 21500, supplier: '해광산업개발', capacity: 17 },      // 샌드밀 (15,500 + 6,000)
-  'S2': { unitPrice: 21500, supplier: '해광산업개발', capacity: 17 },      // 모래 (15,500 + 6,000)
-  'C1': { unitPrice: 120000, supplier: '성신양회', capacity: 1 },         // 시멘트 (운반비 없음)
-  'C2': { unitPrice: 30000, supplier: '에이지산업', capacity: 1 },        // 플라이애쉬 (운반비 없음)
-  'C3': { unitPrice: 67040, supplier: '고려기초', capacity: 1 },          // 슬래그 (59,840 + 7,200)
-  'AD1': { unitPrice: 1000, supplier: '혼화제 공급사 1', capacity: 1 },   // 혼화제1
-  'AD2': { unitPrice: 1000, supplier: '혼화제 공급사 2', capacity: 1 },   // 혼화제2
-  'AD3': { unitPrice: 1000, supplier: '혼화제 공급사 3', capacity: 1 }    // 혼화제3
+// ✅ 서버에서 불러온 단가를 저장하는 ref (하드코딩 제거)
+const defaultPrices = ref({});
+
+// 공급업체·차량 용량은 서버 단가와 무관한 운영 정보이므로 별도 유지
+const materialMeta = {
+  'G1':  { supplier: '해광산업개발',    capacity: 17 },
+  'S1':  { supplier: '해광산업개발',    capacity: 17 },
+  'S2':  { supplier: '해광산업개발',    capacity: 17 },
+  'C1':  { supplier: '성신양회',        capacity: 1  },
+  'C2':  { supplier: '에이지산업',      capacity: 1  },
+  'C3':  { supplier: '고려기초',        capacity: 1  },
+  'AD1': { supplier: '혼화제 공급사 1', capacity: 1  },
+  'AD2': { supplier: '혼화제 공급사 2', capacity: 1  },
+  'AD3': { supplier: '혼화제 공급사 3', capacity: 1  },
 };
-// 혼화제 여부 체크 (computed)
+
+// ✅ 대시보드와 동일한 API로 단가 로드
+const loadUnitPrices = async () => {
+  try {
+    const response = await api.post('/material/stock/dashboard/unit-prices');
+    const priceList = response.data || response || [];
+
+    priceList.forEach(item => {
+      const meta = materialMeta[item.materialType] || { supplier: '', capacity: 1 };
+      defaultPrices.value[item.materialType] = {
+        unitPrice: item.totalPrice,   // 단가 + 운반비 합계
+        supplier:  meta.supplier,
+        capacity:  meta.capacity,
+      };
+    });
+  } catch (error) {
+    console.error('단가 로드 오류:', error);
+  }
+};
+
 const isAdmixture = computed(() => {
   return ['AD1', 'AD2', 'AD3'].includes(incomingForm.value.materialType);
 });
 
-// 혼화제 타입인지 체크하는 함수
 const isAdmixtureType = (materialType) => {
   return ['AD1', 'AD2', 'AD3'].includes(materialType);
 };
@@ -460,33 +474,31 @@ const openDatePicker = (event) => {
 
 const onMaterialTypeChange = () => {
   const materialType = incomingForm.value.materialType;
-  if (defaultPrices[materialType]) {
-    incomingForm.value.supplier = defaultPrices[materialType].supplier;
-    incomingForm.value.unitPrice = defaultPrices[materialType].unitPrice;  // ✅ 이 부분이 제대로 작동하는지 확인
-    incomingForm.value.quantityPerTruck = defaultPrices[materialType].capacity;
+  const priceInfo = defaultPrices.value[materialType];
 
-    // 혼화제인 경우 truckCount 초기화
+  if (priceInfo) {
+    incomingForm.value.supplier         = priceInfo.supplier;
+    incomingForm.value.unitPrice        = priceInfo.unitPrice;
+    incomingForm.value.quantityPerTruck = priceInfo.capacity;
+
     if (isAdmixture.value) {
       incomingForm.value.truckCount = 0;
     }
-
     calculateIncoming();
   }
 };
 
 const calculateIncoming = () => {
-  const trucks = incomingForm.value.truckCount || 0;
-  const unitPrice = incomingForm.value.unitPrice || 0;
+  const trucks    = incomingForm.value.truckCount || 0;
+  const unitPrice = incomingForm.value.unitPrice  || 0;
 
   if (isAdmixture.value) {
-    // 혼화제: truckCount가 직접 수량(L)
     incomingForm.value.totalQuantity = trucks;
-    incomingForm.value.totalPrice = trucks * unitPrice;
+    incomingForm.value.totalPrice    = trucks * unitPrice;
   } else {
-    // 골재/시멘트: truckCount * quantityPerTruck
     const qtyPerTruck = incomingForm.value.quantityPerTruck || 0;
     incomingForm.value.totalQuantity = trucks * qtyPerTruck;
-    incomingForm.value.totalPrice = trucks * qtyPerTruck * unitPrice;
+    incomingForm.value.totalPrice    = trucks * qtyPerTruck * unitPrice;
   }
 };
 
@@ -522,16 +534,16 @@ const saveIncoming = async () => {
 
 const editIncoming = (item) => {
   incomingForm.value = {
-    incomingId: item.incomingId,
-    workDate: item.workDate,
-    materialType: item.materialType,
-    supplier: item.supplier,
-    truckCount: item.truckCount,
+    incomingId:       item.incomingId,
+    workDate:         item.workDate,
+    materialType:     item.materialType,
+    supplier:         item.supplier,
+    truckCount:       item.truckCount,
     quantityPerTruck: item.quantityPerTruck,
-    totalQuantity: item.totalQuantity,
-    unitPrice: item.unitPrice,
-    totalPrice: item.totalPrice,
-    memo: item.memo || ''
+    totalQuantity:    item.totalQuantity,
+    unitPrice:        item.unitPrice,
+    totalPrice:       item.totalPrice,
+    memo:             item.memo || ''
   };
   incomingEditMode.value = true;
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -539,7 +551,6 @@ const editIncoming = (item) => {
 
 const deleteIncoming = async (incomingId) => {
   if (!confirm('정말 삭제하시겠습니까?')) return;
-
   try {
     await api.post('/material/stock/incoming/delete', { incomingId });
     alert('삭제되었습니다');
@@ -552,16 +563,16 @@ const deleteIncoming = async (incomingId) => {
 
 const resetIncomingForm = () => {
   incomingForm.value = {
-    incomingId: null,
-    workDate: new Date().toISOString().split('T')[0],
-    materialType: '',
-    supplier: '',
-    truckCount: 0,
+    incomingId:       null,
+    workDate:         new Date().toISOString().split('T')[0],
+    materialType:     '',
+    supplier:         '',
+    truckCount:       0,
     quantityPerTruck: 17.000,
-    totalQuantity: 0,
-    unitPrice: 0,
-    totalPrice: 0,
-    memo: ''
+    totalQuantity:    0,
+    unitPrice:        0,
+    totalPrice:       0,
+    memo:             ''
   };
   incomingEditMode.value = false;
 };
@@ -569,7 +580,7 @@ const resetIncomingForm = () => {
 const loadIncomingData = async () => {
   try {
     const response = await api.post('/material/stock/incoming/monthly', {
-      year: searchYear.value,
+      year:  searchYear.value,
       month: searchMonth.value
     });
     incomingList.value = response.data || response || [];
@@ -582,7 +593,7 @@ const loadIncomingData = async () => {
 const loadStockData = async () => {
   try {
     const response = await api.post('/material/stock/monthly', {
-      year: searchYear.value,
+      year:  searchYear.value,
       month: searchMonth.value
     });
     stockList.value = response.data || response || [];
@@ -595,7 +606,7 @@ const loadStockData = async () => {
 const loadSummaryData = async () => {
   try {
     const response = await api.post('/material/stock/summary', {
-      year: searchYear.value,
+      year:  searchYear.value,
       month: searchMonth.value
     });
     summaryList.value = response.data || response || [];
@@ -616,15 +627,13 @@ const formatNumber = (value) => {
   return Number(value).toLocaleString('ko-KR', { maximumFractionDigits: 3 });
 };
 
-// 기존 ref들 아래에 추가
 const openingForm = ref({
-  year: new Date().getFullYear(),
-  month: new Date().getMonth() + 1,
-  materialType: '',
-  openingStock: 0
+  year:          new Date().getFullYear(),
+  month:         new Date().getMonth() + 1,
+  materialType:  '',
+  openingStock:  0
 });
 
-// 기존 함수들 아래에 추가
 const saveOpening = async () => {
   try {
     if (!openingForm.value.materialType) {
@@ -637,25 +646,23 @@ const saveOpening = async () => {
     }
 
     await api.post('/material/stock/opening/set', {
-      year: openingForm.value.year,
-      month: openingForm.value.month,
+      year:         openingForm.value.year,
+      month:        openingForm.value.month,
       materialType: openingForm.value.materialType,
       openingStock: openingForm.value.openingStock
     });
 
     alert('전월이월이 설정되었습니다');
 
-    // 폼 초기화
     openingForm.value = {
-      year: openingForm.value.year,
-      month: openingForm.value.month,
+      year:         openingForm.value.year,
+      month:        openingForm.value.month,
       materialType: '',
       openingStock: 0
     };
 
-    // 요약 데이터 다시 조회
     if (searchYear.value === openingForm.value.year &&
-      searchMonth.value === openingForm.value.month) {
+        searchMonth.value === openingForm.value.month) {
       loadSummaryData();
     }
   } catch (error) {
@@ -664,7 +671,9 @@ const saveOpening = async () => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
+  // ✅ 단가를 서버에서 먼저 불러온 뒤 입고 내역 조회
+  await loadUnitPrices();
   loadIncomingData();
 });
 </script>
