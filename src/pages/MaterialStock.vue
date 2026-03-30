@@ -67,8 +67,21 @@
 
             <div class="col-md-3">
               <label class="form-label">{{ isAdmixture ? '입고 수량' : '차대수' }} *</label>
-              <input type="number" v-model.number="incomingForm.truckCount" @input="calculateIncoming"
-                class="form-control" :placeholder="isAdmixture ? '예: 100' : '예: 2'" />
+              <input type="number"
+                v-if="isAdmixture"
+                v-model.number="incomingForm.totalQuantity"
+                @input="calculateIncoming"
+                class="form-control"
+                placeholder="예: 8040"
+              />
+
+              <input type="number"
+                v-else
+                v-model.number="incomingForm.truckCount"
+                @input="calculateIncoming"
+                class="form-control"
+                placeholder="예: 2"
+              />
             </div>
           </div>
 
@@ -87,8 +100,11 @@
 
             <div class="col-md-3">
               <label class="form-label">총 입고량 (톤)</label>
-              <input type="number" v-model.number="incomingForm.totalQuantity" class="form-control calculated-field"
-                readonly />
+              <input type="number"
+                v-model.number="incomingForm.totalQuantity"
+                class="form-control"
+                :readonly="!isAdmixture"
+              />
             </div>
 
             <div class="col-md-3">
@@ -407,6 +423,11 @@ const activeTab = ref('incoming');
 const searchYear = ref(new Date().getFullYear());
 const searchMonth = ref(new Date().getMonth() + 1);
 
+const getCapacityByType = (materialType) => {
+  if (['G1', 'S1', 'S2'].includes(materialType)) return 17; // 골재
+  return 1; // 시멘트 + 혼화제
+};
+
 const incomingForm = ref({
   incomingId: null,
   workDate: new Date().toISOString().split('T')[0],
@@ -477,26 +498,34 @@ const onMaterialTypeChange = () => {
   const priceInfo = defaultPrices.value[materialType];
 
   if (priceInfo) {
-    incomingForm.value.supplier         = priceInfo.supplier;
-    incomingForm.value.unitPrice        = priceInfo.unitPrice;
-    incomingForm.value.quantityPerTruck = priceInfo.capacity;
-
-    if (isAdmixture.value) {
-      incomingForm.value.truckCount = 0;
-    }
-    calculateIncoming();
+    incomingForm.value.supplier  = priceInfo.supplier;
+    incomingForm.value.unitPrice = priceInfo.unitPrice;
   }
+
+  // 🔥 핵심: 무조건 타입 기준으로 설정
+  incomingForm.value.quantityPerTruck = getCapacityByType(materialType);
+
+  // 혼화제일 때 초기화
+  if (isAdmixture.value) {
+    incomingForm.value.truckCount = 0;
+    incomingForm.value.totalQuantity = 0;
+  }
+
+  calculateIncoming();
 };
 
 const calculateIncoming = () => {
-  const trucks    = incomingForm.value.truckCount || 0;
-  const unitPrice = incomingForm.value.unitPrice  || 0;
+  const unitPrice = incomingForm.value.unitPrice || 0;
 
   if (isAdmixture.value) {
-    incomingForm.value.totalQuantity = trucks;
-    incomingForm.value.totalPrice    = trucks * unitPrice;
+    const qty = incomingForm.value.totalQuantity || 0;
+    incomingForm.value.truckCount = qty;
+    incomingForm.value.totalPrice = qty * unitPrice;
+
   } else {
+    const trucks = incomingForm.value.truckCount || 0;
     const qtyPerTruck = incomingForm.value.quantityPerTruck || 0;
+
     incomingForm.value.totalQuantity = trucks * qtyPerTruck;
     incomingForm.value.totalPrice    = trucks * qtyPerTruck * unitPrice;
   }
@@ -563,16 +592,16 @@ const deleteIncoming = async (incomingId) => {
 
 const resetIncomingForm = () => {
   incomingForm.value = {
-    incomingId:       null,
-    workDate:         new Date().toISOString().split('T')[0],
-    materialType:     '',
-    supplier:         '',
-    truckCount:       0,
-    quantityPerTruck: 17.000,
-    totalQuantity:    0,
-    unitPrice:        0,
-    totalPrice:       0,
-    memo:             ''
+    incomingId: null,
+    workDate: new Date().toISOString().split('T')[0],
+    materialType: '',
+    supplier: '',
+    truckCount: 0,
+    quantityPerTruck: 1, // 🔥 기본 1로
+    totalQuantity: 0,
+    unitPrice: 0,
+    totalPrice: 0,
+    memo: ''
   };
   incomingEditMode.value = false;
 };

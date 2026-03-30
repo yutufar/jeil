@@ -226,7 +226,7 @@ const downloadExcel = async () => {
     currentRow++;
 
     const section1HeaderRow = worksheet.getRow(currentRow);
-    ['구분', '상차도', '제품 (원)', '생산량 (㎥)'].forEach((header, idx) => {
+    ['구분', '판매량', '금액', '평균단가'].forEach((header, idx) => {
       const cell = section1HeaderRow.getCell(idx + 1);
       cell.value = header;
       cell.font = { size: 10, bold: true };
