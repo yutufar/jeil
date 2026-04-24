@@ -1027,10 +1027,10 @@ const exportMonthlyReport = async () => {
       }
     }
 
-    const headerFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E79' } }
-    const subHeaderFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E75B6' } }
-    const totalFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFD966' } }
-    const evenRowFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F9FF' } }
+    const headerFill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E79' } }
+    const subHeaderFill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E75B6' } }
+    const totalFill       = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFD966' } }
+    const evenRowFill     = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F9FF' } }
     const memoHighlightFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF0CC' } }
     const specialMemoFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCCCC' } }
 
@@ -1365,17 +1365,16 @@ const exportMonthlyReport = async () => {
     const ws1 = workbook.addWorksheet('전체 현황')
 
     ws1.columns = [
-      { width: 14 },  // A: 일자
-      { width: 12 },  // B: 차량번호
-      { width: 10 },  // C: 기사명
-      { width: 8 },   // D: 회수
-      { width: 12 },  // E: 단가 (부가세 제외)
-      { width: 16 },  // F: 운반비
-      { width: 10 },  // G: 거리(km)
-      { width: 30 },  // H: 비고
+      { width: 14 },
+      { width: 12 },
+      { width: 10 },
+      { width: 8  },
+      { width: 12 },
+      { width: 16 },
+      { width: 10 },
+      { width: 30 },
     ]
 
-    // 제목 행
     ws1.mergeCells('A1:H1')
     const titleCell = ws1.getCell('A1')
     titleCell.value = `🚛 레미콘 운반비 월간 현황  [${monthStr}]`
@@ -1384,7 +1383,6 @@ const exportMonthlyReport = async () => {
     titleCell.alignment = { horizontal: 'center', vertical: 'middle' }
     ws1.getRow(1).height = 36
 
-    // 컬럼 헤더
     const headers1 = ['일자', '차량번호', '기사명', '회수', '단가', '운반비', '거리(km)', '비고']
     const headerRow1 = ws1.getRow(2)
     headers1.forEach((h, i) => {
@@ -1397,7 +1395,6 @@ const exportMonthlyReport = async () => {
     })
     headerRow1.height = 24
 
-    // 데이터 정렬: 날짜 → 차량번호 순
     const sorted = [...deliveryData.value].sort((a, b) => {
       const da = new Date(a.workDate)
       const db = new Date(b.workDate)
@@ -1421,7 +1418,7 @@ const exportMonthlyReport = async () => {
         getVehicleCarNum(item.vehicleId),
         getUserName(item.userId),
         item.tripCount,
-        Math.round(item.unitPrice / 1.1),   // ← 부가세 제외 단가 (65,000)
+        Math.round(item.unitPrice / 1.1),
         item.deliveryFee,
         item.distanceKm ? Math.round(item.distanceKm * 10) / 10 : 0,
         memo || '-'
@@ -1458,7 +1455,6 @@ const exportMonthlyReport = async () => {
       dataRowIdx++
     })
 
-    // 합계 행
     const totalRow1 = ws1.getRow(dataRowIdx)
     ws1.mergeCells(dataRowIdx, 1, dataRowIdx, 3)
     const totalLabelCell1 = totalRow1.getCell(1)
@@ -1469,11 +1465,11 @@ const exportMonthlyReport = async () => {
     applyBorder(totalLabelCell1, 'medium')
 
     const totals1 = [
-      { col: 4, val: sorted.reduce((s, d) => s + (d.tripCount || 0), 0), fmt: '#,##0' },
-      { col: 5, val: '', fmt: '' },
-      { col: 6, val: sorted.reduce((s, d) => s + (d.deliveryFee || 0), 0), fmt: '#,##0' },
+      { col: 4, val: sorted.reduce((s, d) => s + (d.tripCount || 0), 0),    fmt: '#,##0'   },
+      { col: 5, val: '',                                                       fmt: ''        },
+      { col: 6, val: sorted.reduce((s, d) => s + (d.deliveryFee || 0), 0),  fmt: '#,##0'   },
       { col: 7, val: Math.round(sorted.reduce((s, d) => s + (d.distanceKm || 0), 0) * 10) / 10, fmt: '#,##0.0' },
-      { col: 8, val: `총 ${sorted.length}건`, fmt: '' }
+      { col: 8, val: `총 ${sorted.length}건`,                                fmt: ''        }
     ]
     totals1.forEach(({ col, val, fmt }) => {
       const cell = totalRow1.getCell(col)
@@ -1486,7 +1482,6 @@ const exportMonthlyReport = async () => {
     })
     totalRow1.height = 26
 
-    // ── 비고 범례 ──────────────────────────────────────────
     const legendRow = dataRowIdx + 2
     ws1.mergeCells(legendRow, 1, legendRow, 8)
     const legendCell = ws1.getCell(`A${legendRow}`)
@@ -1510,7 +1505,7 @@ const exportMonthlyReport = async () => {
       { width: 12 },
       { width: 10 },
       { width: 12 },
-      { width: 8 },
+      { width: 8  },
     ]
 
     ws2.mergeCells('A1:I1')
@@ -1547,9 +1542,9 @@ const exportMonthlyReport = async () => {
           count: 0
         }
       }
-      carSummaryMap[carNum].tripCount += item.tripCount || 0
+      carSummaryMap[carNum].tripCount  += item.tripCount  || 0
       carSummaryMap[carNum].deliveryFee += item.deliveryFee || 0
-      carSummaryMap[carNum].distanceKm += item.distanceKm || 0
+      carSummaryMap[carNum].distanceKm  += item.distanceKm  || 0
       carSummaryMap[carNum].count++
     })
 
@@ -1592,20 +1587,20 @@ const exportMonthlyReport = async () => {
     tl2.alignment = { horizontal: 'center', vertical: 'middle' }
     applyBorder(tl2, 'medium')
 
-    const grandTrips = carSummaries.reduce((s, d) => s + d.tripCount, 0)
-    const grandFee = carSummaries.reduce((s, d) => s + d.deliveryFee, 0)
+    const grandTrips  = carSummaries.reduce((s, d) => s + d.tripCount, 0)
+    const grandFee    = carSummaries.reduce((s, d) => s + d.deliveryFee, 0)
     const grandSupply = Math.round(grandFee / 1.1)
-    const grandTax = grandFee - grandSupply
-    const grandDist = Math.round(carSummaries.reduce((s, d) => s + d.distanceKm, 0) * 10) / 10
-    const grandCount = carSummaries.reduce((s, d) => s + d.count, 0)
+    const grandTax    = grandFee - grandSupply
+    const grandDist   = Math.round(carSummaries.reduce((s, d) => s + d.distanceKm, 0) * 10) / 10
+    const grandCount  = carSummaries.reduce((s, d) => s + d.count, 0)
 
     const grandVals = [
-      { col: 4, val: grandTrips, fmt: '#,##0' },
-      { col: 5, val: grandFee, fmt: '#,##0' },
-      { col: 6, val: grandSupply, fmt: '#,##0' },
-      { col: 7, val: grandTax, fmt: '#,##0' },
-      { col: 8, val: grandDist, fmt: '#,##0.0' },
-      { col: 9, val: grandCount, fmt: '#,##0' },
+      { col: 4, val: grandTrips,  fmt: '#,##0'   },
+      { col: 5, val: grandFee,    fmt: '#,##0'   },
+      { col: 6, val: grandSupply, fmt: '#,##0'   },
+      { col: 7, val: grandTax,    fmt: '#,##0'   },
+      { col: 8, val: grandDist,   fmt: '#,##0.0' },
+      { col: 9, val: grandCount,  fmt: '#,##0'   },
     ]
     grandVals.forEach(({ col, val, fmt }) => {
       const cell = totRow2.getCell(col)
@@ -1619,7 +1614,229 @@ const exportMonthlyReport = async () => {
     totRow2.height = 26
 
     // ════════════════════════════════════════════════════════
-    //  시트 3~N: 차량별 일일 상세
+    //  시트 3: 지급공제내역 (세무사 자료)
+    // ════════════════════════════════════════════════════════
+    const SANJAE      = 48660
+    const GOYONG      = 22500
+    const SANGJO_BASE = 50000
+    const SANGJO_7932 = 350000
+    const GOYONG_CARS = ['6269', '6793', '6645', '7932']
+
+    const wsAcc = workbook.addWorksheet('📋 지급공제내역')
+
+    wsAcc.columns = [
+      { width: 10 },  // A: 차량번호
+      { width: 10 },  // B: 기사명
+      { width: 14 },  // C: 업체명
+      { width: 16 },  // D: 운반비
+      { width: 10 },  // E: 산재보험
+      { width: 10 },  // F: 고용보험
+      { width: 10 },  // G: 상조회비
+      { width: 14 },  // H: 공제합계
+      { width: 16 },  // I: 실지급액
+      { width: 8  },  // J: 은행
+      { width: 22 },  // K: 계좌번호
+    ]
+
+    // ── 제목 ──────────────────────────────────────────────
+    wsAcc.mergeCells('A1:K1')
+    const accTitle = wsAcc.getCell('A1')
+    accTitle.value = `🚛 레미콘 운반비 지급공제내역  [${monthStr}]`
+    accTitle.font = { bold: true, size: 15, color: { argb: 'FFFFFFFF' } }
+    accTitle.fill = headerFill
+    accTitle.alignment = { horizontal: 'center', vertical: 'middle' }
+    wsAcc.getRow(1).height = 34
+
+    // ── 컬럼 헤더 ─────────────────────────────────────────
+    const accHeaders = ['차량번호', '기사명', '업체명', '운반비', '산재보험', '고용보험', '상조회비', '공제합계', '실지급액', '은행', '계좌번호']
+    const accHRow = wsAcc.getRow(2)
+    accHeaders.forEach((h, i) => {
+      const cell = accHRow.getCell(i + 1)
+      cell.value = h
+      cell.font  = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } }
+      cell.fill  = subHeaderFill
+      cell.alignment = { horizontal: 'center', vertical: 'middle' }
+      applyBorder(cell, 'medium')
+    })
+    wsAcc.getRow(2).height = 22
+
+    // ── 기사별 데이터 행 ──────────────────────────────────
+    let accRowIdx   = 3
+    let totalSangjo = 0
+
+    carSummaries.forEach((s, idx) => {
+      const row    = wsAcc.getRow(accRowIdx)
+      const isEven = idx % 2 === 0
+
+      const sanjae         = SANJAE
+      const goyong         = GOYONG_CARS.includes(s.carNum) ? GOYONG : 0
+      const sangjo         = s.carNum === '7932' ? SANGJO_7932 : SANGJO_BASE
+      totalSangjo         += sangjo
+      const totalDeduction = sanjae + goyong + sangjo
+      const netPay         = s.deliveryFee - totalDeduction
+      const info           = driverInfo[s.carNum]
+
+      const bgFill = isEven
+        ? evenRowFill
+        : { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }
+
+      const vals = [
+        s.carNum, s.driverName, s.company,
+        s.deliveryFee,
+        sanjae,
+        goyong > 0 ? goyong : '',
+        sangjo,
+        totalDeduction,
+        netPay,
+        info?.bank    || '-',
+        info?.account || '-'
+      ]
+
+      vals.forEach((v, ci) => {
+        const cell = row.getCell(ci + 1)
+        cell.value = v
+
+        if (ci === 8) {
+          // 실지급액 강조
+          cell.font = { bold: true, size: 11, color: { argb: 'FFC00000' } }
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? 'FFFFF2CC' : 'FFFFD966' } }
+          cell.alignment = { horizontal: 'right', vertical: 'middle' }
+          cell.numFmt = '#,##0'
+        } else if (ci === 5 && !goyong) {
+          // 고용보험 해당없음
+          cell.value = '-'
+          cell.font  = { size: 9, color: { argb: 'FFCCCCCC' } }
+          cell.fill  = bgFill
+          cell.alignment = { horizontal: 'center', vertical: 'middle' }
+        } else {
+          cell.font = { size: 10 }
+          cell.fill = bgFill
+          if (ci >= 3 && ci <= 8 && typeof v === 'number') {
+            cell.alignment = { horizontal: 'right', vertical: 'middle' }
+            cell.numFmt = '#,##0'
+          } else {
+            cell.alignment = { horizontal: 'center', vertical: 'middle' }
+          }
+        }
+
+        applyBorder(cell)
+      })
+
+      row.height = 21
+      accRowIdx++
+    })
+
+    // ── 합계 행 ───────────────────────────────────────────
+    const accTotRow = wsAcc.getRow(accRowIdx)
+    wsAcc.mergeCells(accRowIdx, 1, accRowIdx, 3)
+    const accTotLabel = accTotRow.getCell(1)
+    accTotLabel.value = '합  계'
+    accTotLabel.font  = { bold: true, size: 12 }
+    accTotLabel.fill  = totalFill
+    accTotLabel.alignment = { horizontal: 'center', vertical: 'middle' }
+    applyBorder(accTotLabel, 'medium')
+
+    const gDelivery  = carSummaries.reduce((s, d) => s + d.deliveryFee, 0)
+    const gSanjae    = carSummaries.length * SANJAE
+    const gGoyong    = carSummaries.filter(s => GOYONG_CARS.includes(s.carNum)).length * GOYONG
+    const gSangjo    = totalSangjo
+    const gDeduction = gSanjae + gGoyong + gSangjo
+    const gNet       = gDelivery - gDeduction
+
+    ;[
+      { col: 4, val: gDelivery  },
+      { col: 5, val: gSanjae    },
+      { col: 6, val: gGoyong    },
+      { col: 7, val: gSangjo    },
+      { col: 8, val: gDeduction },
+      { col: 9, val: gNet       },
+    ].forEach(({ col, val }) => {
+      const cell = accTotRow.getCell(col)
+      cell.value = val
+      cell.font  = { bold: true, size: 12, ...(col === 9 ? { color: { argb: 'FFC00000' } } : {}) }
+      cell.fill  = totalFill
+      cell.alignment = { horizontal: 'right', vertical: 'middle' }
+      cell.numFmt = '#,##0'
+      applyBorder(cell, 'medium')
+    })
+    ;[10, 11].forEach(col => {
+      const cell = accTotRow.getCell(col)
+      cell.fill = totalFill
+      applyBorder(cell, 'medium')
+    })
+    accTotRow.height = 26
+    accRowIdx += 2  // 빈 줄 한 칸
+
+    // ── 이종규 – 상조회비 수금 행 ─────────────────────────
+    const jInfo = driverInfo['6645']
+    const jRow  = wsAcc.getRow(accRowIdx)
+
+    wsAcc.mergeCells(accRowIdx, 1, accRowIdx, 3)
+    const jLabel = jRow.getCell(1)
+    jLabel.value = '이종규  (상조회비 수금)'
+    jLabel.font  = { bold: true, size: 10, color: { argb: 'FF1F4E79' } }
+    jLabel.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD6E4F0' } }
+    jLabel.alignment = { horizontal: 'center', vertical: 'middle' }
+    applyBorder(jLabel, 'medium')
+
+    for (let c = 4; c <= 8; c++) {
+      const cell = jRow.getCell(c)
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD6E4F0' } }
+      applyBorder(cell)
+    }
+
+    const jAmt = jRow.getCell(9)
+    jAmt.value     = totalSangjo
+    jAmt.font      = { bold: true, size: 11, color: { argb: 'FFC00000' } }
+    jAmt.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFD966' } }
+    jAmt.alignment = { horizontal: 'right', vertical: 'middle' }
+    jAmt.numFmt    = '#,##0'
+    applyBorder(jAmt, 'medium')
+
+    ;[10, 11].forEach((c, i) => {
+      const cell = jRow.getCell(c)
+      cell.value     = i === 0 ? (jInfo?.bank || '-') : (jInfo?.account || '-')
+      cell.font      = { size: 10 }
+      cell.alignment = { horizontal: 'center', vertical: 'middle' }
+      applyBorder(cell)
+    })
+    jRow.height = 22
+    accRowIdx++
+
+    // ── 폐수 – 수기 입력 행 (이종규 계좌) ────────────────
+    const pRow = wsAcc.getRow(accRowIdx)
+
+    wsAcc.mergeCells(accRowIdx, 1, accRowIdx, 3)
+    const pLabel = pRow.getCell(1)
+    pLabel.value = '폐수  (수기 입력)'
+    pLabel.font  = { bold: true, size: 10, color: { argb: 'FF7B3F00' } }
+    pLabel.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF0CC' } }
+    pLabel.alignment = { horizontal: 'center', vertical: 'middle' }
+    applyBorder(pLabel, 'medium')
+
+    for (let c = 4; c <= 8; c++) {
+      const cell = pRow.getCell(c)
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF0CC' } }
+      applyBorder(cell)
+    }
+
+    const pAmt = pRow.getCell(9)
+    pAmt.value     = ''   // 수기 입력 공란
+    pAmt.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CC' } }
+    pAmt.alignment = { horizontal: 'right', vertical: 'middle' }
+    applyBorder(pAmt, 'medium')
+
+    ;[10, 11].forEach((c, i) => {
+      const cell = pRow.getCell(c)
+      cell.value     = i === 0 ? (jInfo?.bank || '-') : (jInfo?.account || '-')
+      cell.font      = { size: 10 }
+      cell.alignment = { horizontal: 'center', vertical: 'middle' }
+      applyBorder(cell)
+    })
+    pRow.height = 22
+
+    // ════════════════════════════════════════════════════════
+    //  시트 4~N: 차량별 일일 상세
     // ════════════════════════════════════════════════════════
     const allCarNums = [...new Set(deliveryData.value.map(d => getVehicleCarNum(d.vehicleId)))].sort((a, b) =>
       a.localeCompare(b, 'ko-KR')
@@ -1633,13 +1850,13 @@ const exportMonthlyReport = async () => {
       if (carItems.length === 0) continue
 
       const driverName = getUserName(carItems[0].userId)
-      const sheetName = `${carNum}(${driverName})`.substring(0, 31)
-      const wsC = workbook.addWorksheet(sheetName)
+      const sheetName  = `${carNum}(${driverName})`.substring(0, 31)
+      const wsC        = workbook.addWorksheet(sheetName)
 
       wsC.columns = [
         { width: 14 },
-        { width: 8 },
-        { width: 8 },
+        { width: 8  },
+        { width: 8  },
         { width: 12 },
         { width: 16 },
         { width: 10 },
@@ -1650,16 +1867,16 @@ const exportMonthlyReport = async () => {
       wsC.mergeCells('A1:G1')
       const cTitle = wsC.getCell('A1')
       cTitle.value = `${carNum} (${driverName})  |  ${info?.company || '-'}  |  ${monthStr}`
-      cTitle.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } }
-      cTitle.fill = headerFill
+      cTitle.font  = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } }
+      cTitle.fill  = headerFill
       cTitle.alignment = { horizontal: 'center', vertical: 'middle' }
       wsC.getRow(1).height = 32
 
       wsC.mergeCells('A2:G2')
       const infoCell = wsC.getCell('A2')
       infoCell.value = `은행: ${info?.bank || '-'}   |   계좌번호: ${info?.account || '-'}   |   FAX: ${info?.fax || '-'}`
-      infoCell.font = { size: 10, color: { argb: 'FF1F4E79' } }
-      infoCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD6E4F0' } }
+      infoCell.font  = { size: 10, color: { argb: 'FF1F4E79' } }
+      infoCell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD6E4F0' } }
       infoCell.alignment = { horizontal: 'center', vertical: 'middle' }
       wsC.getRow(2).height = 20
 
@@ -1668,62 +1885,62 @@ const exportMonthlyReport = async () => {
       headersC.forEach((h, i) => {
         const cell = hRowC.getCell(i + 1)
         cell.value = h
-        cell.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } }
-        cell.fill = subHeaderFill
+        cell.font  = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } }
+        cell.fill  = subHeaderFill
         cell.alignment = { horizontal: 'center', vertical: 'middle' }
         applyBorder(cell, 'medium')
       })
       hRowC.height = 22
 
       const totalDays = new Date(year, month, 0).getDate()
-      const dayNames = ['일', '월', '화', '수', '목', '금', '토']
+      const dayNames  = ['일', '월', '화', '수', '목', '금', '토']
       let rowIdxC = 4
 
       for (let day = 1; day <= totalDays; day++) {
         const dateStr2 = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-        const dayData = carItems.filter(d => {
+        const dayData  = carItems.filter(d => {
           const dDate = new Date(d.workDate).toISOString().split('T')[0]
           return dDate === dateStr2
         })
 
-        const dateObj2 = new Date(dateStr2)
-        const dayName = dayNames[dateObj2.getDay()]
-        const isSunday = dateObj2.getDay() === 0
+        const dateObj2  = new Date(dateStr2)
+        const dayName   = dayNames[dateObj2.getDay()]
+        const isSunday  = dateObj2.getDay() === 0
         const isSaturday = dateObj2.getDay() === 6
 
         if (dayData.length === 0) {
           const row = wsC.getRow(rowIdxC)
           const dateCell = row.getCell(1)
           dateCell.value = `${month}/${String(day).padStart(2, '0')}`
-          dateCell.font = { size: 9, color: { argb: isSunday ? 'FFCC0000' : (isSaturday ? 'FF0066CC' : 'FFB0B0B0') } }
+          dateCell.font  = { size: 9, color: { argb: isSunday ? 'FFCC0000' : (isSaturday ? 'FF0066CC' : 'FFB0B0B0') } }
           dateCell.alignment = { horizontal: 'center', vertical: 'middle' }
           applyBorder(dateCell)
 
           const dayCell = row.getCell(2)
           dayCell.value = dayName
-          dayCell.font = { size: 9, color: { argb: isSunday ? 'FFCC0000' : (isSaturday ? 'FF0066CC' : 'FFB0B0B0') } }
+          dayCell.font  = { size: 9, color: { argb: isSunday ? 'FFCC0000' : (isSaturday ? 'FF0066CC' : 'FFB0B0B0') } }
           dayCell.alignment = { horizontal: 'center' }
           applyBorder(dayCell)
 
           for (let ci = 3; ci <= 7; ci++) {
             const cell = row.getCell(ci)
             cell.value = '-'
-            cell.font = { size: 9, color: { argb: 'FFD0D0D0' } }
+            cell.font  = { size: 9, color: { argb: 'FFD0D0D0' } }
             cell.alignment = { horizontal: 'center' }
             applyBorder(cell)
           }
           row.height = 16
         } else {
           dayData.forEach((item, di) => {
-            const row = wsC.getRow(rowIdxC)
-            const memo = item.memo || ''
+            const row      = wsC.getRow(rowIdxC)
+            const memo     = item.memo || ''
             const hasSpecial = isSpecialMemo(memo)
 
             const dVals = [
               di === 0 ? `${month}/${String(day).padStart(2, '0')}` : '',
               di === 0 ? dayName : '',
               item.tripCount,
-              Math.round(item.unitPrice / 1.1),   // ← 부가세 제외 단가 (65,000)
+              Math.round(item.unitPrice / 1.1),
               item.deliveryFee,
               item.distanceKm ? Math.round(item.distanceKm * 10) / 10 : 0,
               memo || '-'
@@ -1759,29 +1976,29 @@ const exportMonthlyReport = async () => {
       wsC.mergeCells(rowIdxC, 1, rowIdxC, 2)
       const cTotLabel = cTotRow.getCell(1)
       cTotLabel.value = '합  계'
-      cTotLabel.font = { bold: true, size: 12 }
-      cTotLabel.fill = totalFill
+      cTotLabel.font  = { bold: true, size: 12 }
+      cTotLabel.fill  = totalFill
       cTotLabel.alignment = { horizontal: 'center', vertical: 'middle' }
       applyBorder(cTotLabel, 'medium')
 
       const cTotalTrips = carItems.reduce((s, d) => s + (d.tripCount || 0), 0)
-      const cTotalFee = carItems.reduce((s, d) => s + (d.deliveryFee || 0), 0)
-      const cTotalDist = Math.round(carItems.reduce((s, d) => s + (d.distanceKm || 0), 0) * 10) / 10
-      const cSupply = Math.round(cTotalFee / 1.1)
-      const cTax = cTotalFee - cSupply
+      const cTotalFee   = carItems.reduce((s, d) => s + (d.deliveryFee || 0), 0)
+      const cTotalDist  = Math.round(carItems.reduce((s, d) => s + (d.distanceKm || 0), 0) * 10) / 10
+      const cSupply     = Math.round(cTotalFee / 1.1)
+      const cTax        = cTotalFee - cSupply
 
       const cTotVals = [
-        { col: 3, val: cTotalTrips, fmt: '#,##0' },
-        { col: 4, val: '', fmt: '' },
-        { col: 5, val: cTotalFee, fmt: '#,##0' },
-        { col: 6, val: cTotalDist, fmt: '#,##0.0' },
+        { col: 3, val: cTotalTrips, fmt: '#,##0'   },
+        { col: 4, val: '',          fmt: ''         },
+        { col: 5, val: cTotalFee,   fmt: '#,##0'   },
+        { col: 6, val: cTotalDist,  fmt: '#,##0.0' },
         { col: 7, val: `${carItems.length}건`, fmt: '' },
       ]
       cTotVals.forEach(({ col, val, fmt }) => {
         const cell = cTotRow.getCell(col)
         cell.value = val
-        cell.font = { bold: true, size: 12 }
-        cell.fill = totalFill
+        cell.font  = { bold: true, size: 12 }
+        cell.fill  = totalFill
         cell.alignment = { horizontal: 'right', vertical: 'middle' }
         if (fmt) cell.numFmt = fmt
         applyBorder(cell, 'medium')
@@ -1792,32 +2009,32 @@ const exportMonthlyReport = async () => {
       wsC.mergeCells(taxRowStart, 1, taxRowStart, 7)
       const taxTitle = wsC.getCell(`A${taxRowStart}`)
       taxTitle.value = '[ 세금계산서 요약 ]'
-      taxTitle.font = { bold: true, size: 11, color: { argb: 'FF1F4E79' } }
-      taxTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD6E4F0' } }
+      taxTitle.font  = { bold: true, size: 11, color: { argb: 'FF1F4E79' } }
+      taxTitle.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD6E4F0' } }
       taxTitle.alignment = { horizontal: 'center', vertical: 'middle' }
       wsC.getRow(taxRowStart).height = 22
 
       const taxData = [
         ['탕수(회)', cTotalTrips, '#,##0'],
-        ['공급가액', cSupply, '#,##0'],
-        ['세액(10%)', cTax, '#,##0'],
-        ['합계금액', cTotalFee, '#,##0'],
+        ['공급가액', cSupply,     '#,##0'],
+        ['세액(10%)', cTax,       '#,##0'],
+        ['합계금액', cTotalFee,   '#,##0'],
       ]
       taxData.forEach(([label, val, fmt], ti) => {
         const tr = taxRowStart + 1 + ti
         wsC.mergeCells(tr, 1, tr, 3)
         const lc = wsC.getCell(`A${tr}`)
         lc.value = label
-        lc.font = { bold: true, size: 11 }
-        lc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ti === 3 ? 'FFFFD966' : 'FFE7E6E6' } }
+        lc.font  = { bold: true, size: 11 }
+        lc.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: ti === 3 ? 'FFFFD966' : 'FFE7E6E6' } }
         lc.alignment = { horizontal: 'center', vertical: 'middle' }
         applyBorder(lc, 'medium')
 
         wsC.mergeCells(tr, 4, tr, 7)
         const vc = wsC.getCell(tr, 4)
-        vc.value = val
-        vc.font = { bold: ti === 3, size: 12, color: { argb: ti === 3 ? 'FFC00000' : 'FF000000' } }
-        vc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ti === 3 ? 'FFFFD966' : 'FFFFFFFF' } }
+        vc.value  = val
+        vc.font   = { bold: ti === 3, size: 12, color: { argb: ti === 3 ? 'FFC00000' : 'FF000000' } }
+        vc.fill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: ti === 3 ? 'FFFFD966' : 'FFFFFFFF' } }
         vc.alignment = { horizontal: 'right', vertical: 'middle' }
         vc.numFmt = fmt
         applyBorder(vc, 'medium')
@@ -1827,16 +2044,16 @@ const exportMonthlyReport = async () => {
 
     // ── 파일 다운로드 ─────────────────────────────────────
     const fileName = `레미콘운반비_월간현황_${year}년${month}월.xlsx`
-    const buffer = await workbook.xlsx.writeBuffer()
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
+    const buffer   = await workbook.xlsx.writeBuffer()
+    const blob     = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url      = window.URL.createObjectURL(blob)
+    const link     = document.createElement('a')
+    link.href     = url
     link.download = fileName
     link.click()
     window.URL.revokeObjectURL(url)
 
-    alert(`월간 현황 엑셀 파일이 다운로드되었습니다.\n\n시트 구성:\n• 전체 현황 (날짜 정렬 + 비고 강조)\n• 차량별 집계\n• 차량별 상세 시트 (차량 수만큼)`)
+    alert(`월간 현황 엑셀 파일이 다운로드되었습니다.\n\n시트 구성:\n• 기사별 날짜 현황 (피벗)\n• 전체 현황\n• 차량별 집계\n• 지급공제내역 (세무사 자료)\n• 차량별 상세 시트 (차량 수만큼)`)
   } catch (error) {
     console.error('월간 현황 다운로드 오류:', error)
     alert('월간 현황 다운로드 중 오류가 발생했습니다: ' + error.message)
