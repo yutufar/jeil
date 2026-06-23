@@ -163,25 +163,30 @@
         margin: 0 15px;
       }
 
-      &:hover:not(.active) > a,
-      &:focus:not(.active) > a {
+      &:hover:not(.active) > a:not(.active),
+      &:focus:not(.active) > a:not(.active) {
+        background: rgba(255, 255, 255, 0.07);
+        border-radius: $btn-round-radius;
         p,
         i {
           color: $white;
         }
       }
 
-      &:hover:not(.active) > a i,
-      &:focus:not(.active) > a i {
+      &:hover:not(.active) > a:not(.active) i,
+      &:focus:not(.active) > a:not(.active) i {
         color: $white;
       }
 
-      &.active > a:not([data-toggle="collapse"]) {
-        background: transparent;
+      &.active > a:not([data-toggle="collapse"]),
+      > a.active:not([data-toggle="collapse"]) {
+        background: rgba(255, 255, 255, 0.15);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 
         i,
         p {
           color: white;
+          font-weight: 700;
         }
 
         &:before {
