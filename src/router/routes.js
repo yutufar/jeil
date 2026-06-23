@@ -1,5 +1,6 @@
 import DashboardLayout from "@/layout/dashboard/DashboardLayout.vue";
-import NotFound from "@/pages/NotFoundPage.vue";
+import NotFound  from "@/pages/NotFoundPage.vue";
+import LoginPage from "@/pages/LoginPage.vue";
 
 const Dashboard              = () => import("@/pages/Dashboard.vue");
 const UserSetting            = () => import("@/pages/UserSetting.vue");
@@ -13,13 +14,21 @@ const FuelUsage              = () => import("@/pages/FuelUsage.vue");
 const BankAccount            = () => import("@/pages/BankAccount.vue");
 const RemiconCalculator      = () => import("@/pages/RemiconCalculator.vue");
 const RemiconExternalSupport = () => import("@/pages/RemiconExternalSupport.vue");
-const ExpenseReport = () => import("@/pages/ExpenseReport.vue");
+const ExpenseReport          = () => import("@/pages/ExpenseReport.vue");
+const RatioSetting           = () => import("@/pages/RatioSetting.vue");
 
 const routes = [
+  {
+    path: "/login",
+    name: "login",
+    component: LoginPage,
+    meta: { public: true },
+  },
   {
     path: "/",
     component: DashboardLayout,
     redirect: "/dashboard",
+    meta: { requiresAuth: true },
     children: [
       { path: "dashboard",           name: "대시보드",          component: Dashboard              },
       { path: "setting/users",       name: "직원 관리",         component: UserSetting            },
@@ -30,10 +39,11 @@ const routes = [
       { path: "log/goljae",          name: "골재 운반비",       component: GoljaeDelivery         },
       { path: "material/stock",      name: "원자재 재고 관리",  component: MaterialStock          },
       { path: "remicon/calculator",  name: "레미콘 단가 계산",  component: RemiconCalculator      },
-      { path: "remicon/external",    name: "외부 지원 운행",    component: RemiconExternalSupport }, // ← 추가
+      { path: "remicon/external",    name: "외부 지원 운행",    component: RemiconExternalSupport },
       { path: "vacation",            name: "휴가 관리",         component: VacationList           },
       { path: "fuel-usage",          name: "유류비 관리",       component: FuelUsage              },
       { path: "expense/report",      name: "지출결의서",        component: ExpenseReport          },
+      { path: "setting/ratio",       name: "비율 설정",         component: RatioSetting           },
     ],
   },
   { path: "*", component: NotFound },

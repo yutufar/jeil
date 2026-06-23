@@ -666,7 +666,7 @@ onMounted(async () => {
 .page-title {
   font-size: 1.3rem;
   font-weight: 700;
-  color: #1e293b;
+  color: #ffffff;
   margin: 0;
 }
 
@@ -754,12 +754,14 @@ onMounted(async () => {
 
 .form-control {
   width: 100%;
+  padding: 0.5rem 0.75rem;
   font-size: 0.9375rem;
   border: 1px solid #e2e8f0;
   border-radius: 0.5rem;
   background: white;
   color: #334155;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .form-control:hover {
@@ -781,14 +783,21 @@ onMounted(async () => {
   position: relative;
 }
 
+.custom-select-wrapper select.form-control {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.25rem;
+  cursor: pointer;
+}
+
 .select-arrow {
   position: absolute;
-  right: 1rem;
+  right: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
   color: #64748b;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
 }
 
 .calculated-field {

@@ -1,36 +1,38 @@
-import axios from 'axios';
+import axios from 'axios'
 
-// Axios 인스턴스 생성
 const api = axios.create({
-  // 백엔드 서버 주소 (Node.js 서버 포트가 3000번인 경우)
   baseURL: process.env.VUE_APP_API_URL || 'http://localhost:9090/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 5000, // 5초 동안 응답 없으면 타임아웃
-});
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 30000,
+})
 
-// [요청 인터셉터] - 서버로 보내기 전 실행
-api.interceptors.request.use(
-  (config) => {
-    // 여기에 나중에 로그인 토큰 등을 넣을 수 있습니다.
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('jeil_token')
+  if (token) config.headers.Authorization = `Bearer ${token}`
 
-// [응답 인터셉터] - 서버 응답을 받은 후 실행
+  // 회사(사업장) 구분을 헤더에 명시적으로 포함 — 백엔드가 토큰 외에도 참조 가능
+  try {
+    const user = JSON.parse(localStorage.getItem('jeil_user'))
+    if (user?.locationId != null) {
+      config.headers['X-Location-Id'] = user.locationId
+    }
+  } catch { /* ignore */ }
+
+  return config
+})
+
 api.interceptors.response.use(
-  (response) => {
-    return response.data; // 데이터를 한 번 더 감싸지 않고 바로 리턴
-  },
+  (response) => response.data,
   (error) => {
-    // 에러 발생 시 공통 처리 (예: 알림 창)
-    console.error('API 에러 발생:', error.response);
-    return Promise.reject(error);
+    // 토큰이 있는 상태에서 401 → 세션 만료, 로그인 페이지로 이동
+    // 토큰이 없는 상태에서 401 → 로그인 시도 중 인증 실패, 그냥 reject
+    if (error.response?.status === 401 && localStorage.getItem('jeil_token')) {
+      localStorage.removeItem('jeil_token')
+      localStorage.removeItem('jeil_user')
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
   }
-);
+)
 
-export default api;
+export default api

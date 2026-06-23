@@ -19,31 +19,133 @@
 
     <!-- 1. 레미콘 판매량 (임시) -->
     <div class="stat-card">
-      <h3>레미콘 판매량 ({{ selectedMonth }}월)</h3>
-      <table class="stat-table">
+      <div class="table-caption">
+        <span>레미콘 판매량 ({{ selectedMonth }}월)</span>
+        <div class="header-btns">
+          <button v-if="!salesEditMode" @click="enterSalesEdit" class="btn-edit-sales">✏️ 입력</button>
+          <template v-else>
+            <button @click="saveSales" class="btn-save-sales">💾 저장</button>
+            <button @click="cancelSalesEdit" class="btn-cancel-sales">취소</button>
+          </template>
+        </div>
+      </div>
+      <table class="stat-table sales-table">
         <thead>
           <tr>
             <th>구분</th>
-            <th>상차도</th>
-            <th>제품</th>
-            <th>생산량</th>
+            <th>수량</th>
+            <th>평균단가</th>
+            <th>금액</th>
+            <th>부가세</th>
+            <th>총액</th>
           </tr>
         </thead>
         <tbody>
+          <!-- 사급 -->
           <tr>
-            <td>{{ selectedMonth }}월</td>
-            <td>{{ formatNumber(production.truckLoads) }}</td>
-            <td>{{ formatNumber(production.productAmount) }}</td>
-            <td>{{ formatNumber(production.productionQty) }}</td>
+            <td class="div-label">사 급</td>
+            <template v-if="salesEditMode">
+              <td><input type="number" v-model.number="salesForm.sagup.quantity" class="sales-input" step="0.01"
+                  @input="calcSales('sagup')" /></td>
+              <td><input type="number" v-model.number="salesForm.sagup.avgUnitPrice" class="sales-input"
+                  @input="calcSales('sagup')" /></td>
+              <td><input type="number" v-model.number="salesForm.sagup.amount" class="sales-input" /></td>
+              <td><input type="number" v-model.number="salesForm.sagup.vat" class="sales-input"
+                  @input="calcTotal('sagup')" /></td>
+              <td><input type="number" v-model.number="salesForm.sagup.totalAmount" class="sales-input" readonly /></td>
+            </template>
+            <template v-else>
+              <td class="text-right">{{ formatNumber(salesData.sagup.quantity) }}</td>
+              <td class="text-right">{{ formatNumber(salesData.sagup.avgUnitPrice) }}</td>
+              <td class="text-right">{{ formatNumber(salesData.sagup.amount) }}</td>
+              <td class="text-right">{{ formatNumber(salesData.sagup.vat) }}</td>
+              <td class="text-right">{{ formatNumber(salesData.sagup.totalAmount) }}</td>
+            </template>
+          </tr>
+
+          <!-- 관급 -->
+          <tr>
+            <td class="div-label">관 급</td>
+            <template v-if="salesEditMode">
+              <td><input type="number" v-model.number="salesForm.gwangup.quantity" class="sales-input" step="0.01"
+                  @input="calcSales('gwangup')" /></td>
+              <td><input type="number" v-model.number="salesForm.gwangup.avgUnitPrice" class="sales-input"
+                  @input="calcSales('gwangup')" /></td>
+              <td><input type="number" v-model.number="salesForm.gwangup.amount" class="sales-input" /></td>
+              <td><input type="number" v-model.number="salesForm.gwangup.vat" class="sales-input"
+                  @input="calcTotal('gwangup')" /></td>
+              <td><input type="number" v-model.number="salesForm.gwangup.totalAmount" class="sales-input" readonly />
+              </td>
+            </template>
+            <template v-else>
+              <td class="text-right">{{ formatNumber(salesData.gwangup.quantity) }}</td>
+              <td class="text-right">{{ formatNumber(salesData.gwangup.avgUnitPrice) }}</td>
+              <td class="text-right">{{ formatNumber(salesData.gwangup.amount) }}</td>
+              <td class="text-right">{{ formatNumber(salesData.gwangup.vat) }}</td>
+              <td class="text-right">{{ formatNumber(salesData.gwangup.totalAmount) }}</td>
+            </template>
+          </tr>
+
+          <!-- 합계 (자동 계산) -->
+          <tr class="total-row">
+            <td class="div-label">합 계</td>
+            <td class="text-right">{{ formatNumber(salesTotals.quantity) }}</td>
+            <td class="text-right">{{ formatNumber(salesTotals.avgUnitPrice) }}</td>
+            <td class="text-right">{{ formatNumber(salesTotals.amount) }}</td>
+            <td class="text-right">{{ formatNumber(salesTotals.vat) }}</td>
+            <td class="text-right">{{ formatNumber(salesTotals.totalAmount) }}</td>
           </tr>
         </tbody>
       </table>
-      <p class="note">※ 레미콘 판매 데이터 저장 기능은 추후 구현 예정</p>
     </div>
 
-    <!-- 2. 월별 자재 사용량 -->
+    <!-- 2. 주유량 요약 -->
     <div class="stat-card">
-      <h3>{{ selectedMonth }}월 자재 사용량</h3>
+      <div class="table-caption">
+        <span>주유량 ({{ selectedMonth }}월)</span>
+        <div class="header-btns">
+          <button v-if="!fuelEditMode" @click="enterFuelEdit" class="btn-edit-sales">✏️ 단가 입력</button>
+          <template v-else>
+            <button @click="saveFuelUnitPrice" class="btn-save-sales">💾 저장</button>
+            <button @click="cancelFuelEdit" class="btn-cancel-sales">취소</button>
+          </template>
+        </div>
+      </div>
+      <table class="stat-table">
+        <thead>
+          <tr>
+            <th>총 주유량 (L)</th>
+            <th>단가 (원/L)</th>
+            <th>총액 (원)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="total-row">
+            <td class="text-right">{{ formatNumber(fuelSummary.totalLiters) }} L</td>
+            <td class="text-right">
+              <template v-if="fuelEditMode">
+                <input type="number" v-model.number="fuelUnitPriceInput" class="sales-input" min="0" step="1" />
+              </template>
+              <template v-else>
+                {{ formatNumber(fuelSummary.unitPrice) }}
+              </template>
+            </td>
+            <td class="text-right">
+              <template v-if="fuelEditMode">
+                {{ formatNumber(Math.round((fuelSummary.totalLiters || 0) * (fuelUnitPriceInput || 0))) }}
+              </template>
+              <template v-else>
+                {{ formatNumber(fuelSummary.totalAmount) }}
+              </template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 3. 월별 자재 사용량 -->
+    <div class="stat-card">
+      <div class="table-caption">{{ selectedMonth }}월 자재 사용량</div>
       <table class="stat-table">
         <thead>
           <tr>
@@ -72,7 +174,7 @@
 
     <!-- 3. 월별 재고 현황 -->
     <div class="stat-card">
-      <h3>{{ selectedMonth }}월 재고 현황</h3>
+      <div class="table-caption">{{ selectedMonth }}월 재고 현황</div>
       <table class="stat-table">
         <thead>
           <tr>
@@ -97,7 +199,7 @@
 
     <!-- 4. 원자재 단가 -->
     <div class="stat-card">
-      <h3>원자재 단가</h3>
+      <div class="table-caption">원자재 단가</div>
       <table class="stat-table">
         <thead>
           <tr>
@@ -135,6 +237,10 @@ const production = ref({
   productionQty: 0
 });
 
+const fuelSummary = ref({ totalLiters: 0, unitPrice: 0, totalAmount: 0 });
+const fuelEditMode = ref(false);
+const fuelUnitPriceInput = ref(0);
+
 const materialUsage = ref([]);
 const stockSummary = ref([]);
 const unitPrices = ref([]);
@@ -160,17 +266,21 @@ const loadData = async () => {
       month: selectedMonth.value
     };
 
-    const [prod, usage, stock, prices] = await Promise.all([
+    const [prod, usage, stock, prices, fuel] = await Promise.all([
       api.post('/material/stock/dashboard/production', params),
       api.post('/material/stock/dashboard/material-usage', params),
       api.post('/material/stock/summary', params),
-      api.post('/material/stock/dashboard/unit-prices')
+      api.post('/material/stock/dashboard/unit-prices'),
+      api.post('/fuel/dashboard/monthly-summary', params)
     ]);
 
     production.value = prod.data || prod;
     materialUsage.value = usage.data || usage;
     stockSummary.value = stock.data || stock;
     unitPrices.value = prices.data || prices;
+    fuelSummary.value = fuel.data || fuel;
+    fuelUnitPriceInput.value = fuelSummary.value.unitPrice || 0;
+    loadSales();
   } catch (error) {
     console.error('대시보드 데이터 조회 오류:', error);
     alert('데이터를 불러오는 중 오류가 발생했습니다');
@@ -188,7 +298,8 @@ const downloadExcel = async () => {
       { width: 18 },
       { width: 18 },
       { width: 18 },
-      { width: 18 }
+      { width: 18 },
+      { width: 18 }   // ← 추가
     ];
 
     // 공통 테두리 스타일
@@ -217,7 +328,7 @@ const downloadExcel = async () => {
     // ──────────────────────────────────────────────
     const section1TitleRow = worksheet.getRow(currentRow);
     section1TitleRow.getCell(1).value = '레미콘 판매량';
-    worksheet.mergeCells(currentRow, 1, currentRow, 4);
+    worksheet.mergeCells(currentRow, 1, currentRow, 6);  // ② 6열로 확장
     section1TitleRow.getCell(1).font = { size: 11, bold: true };
     section1TitleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
     section1TitleRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
@@ -225,8 +336,9 @@ const downloadExcel = async () => {
     section1TitleRow.height = 20;
     currentRow++;
 
+    // 헤더: 구분 / 수량 / 평균단가 / 금액 / 부가세 / 총액
     const section1HeaderRow = worksheet.getRow(currentRow);
-    ['구분', '판매량', '금액', '평균단가'].forEach((header, idx) => {
+    ['구분', '수량', '평균단가', '금액', '부가세', '총액'].forEach((header, idx) => {
       const cell = section1HeaderRow.getCell(idx + 1);
       cell.value = header;
       cell.font = { size: 10, bold: true };
@@ -237,31 +349,85 @@ const downloadExcel = async () => {
     section1HeaderRow.height = 20;
     currentRow++;
 
-    const section1DataRow = worksheet.getRow(currentRow);
-    [
-      `${selectedMonth.value}월`,
-      production.value.truckLoads || 0,
-      production.value.productAmount || 0,
-      production.value.productionQty || 0
-    ].forEach((value, idx) => {
-      const cell = section1DataRow.getCell(idx + 1);
-      cell.value = value;
-      cell.font = { size: 10 };
-      cell.alignment = { horizontal: idx === 0 ? 'left' : 'right', vertical: 'middle' };
-      cell.border = allBorders;
-      if (typeof value === 'number') {
-        cell.numFmt = '#,##0';
-      }
-    });
-    section1DataRow.height = 20;
+    // 사급 / 관급 / 합계 데이터 행 공통 헬퍼
+    const writeSalesRow = (rowData, isBold = false, bgArgb = null) => {
+      const row = worksheet.getRow(currentRow);
+      rowData.forEach((value, idx) => {
+        const cell = row.getCell(idx + 1);
+        cell.value = value;
+        cell.font = { size: 10, bold: isBold || idx === 0 };
+        cell.alignment = { horizontal: idx === 0 ? 'center' : 'right', vertical: 'middle' };
+        cell.border = allBorders;
+        if (bgArgb) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
+        if (typeof value === 'number') cell.numFmt = '#,##0';
+      });
+      row.height = 20;
+      currentRow++;
+    };
+
+    const sd = salesData.value;
+    writeSalesRow([
+      '사 급',
+      Number(sd.sagup.quantity || 0),
+      Number(sd.sagup.avgUnitPrice || 0),
+      Number(sd.sagup.amount || 0),
+      Number(sd.sagup.vat || 0),
+      Number(sd.sagup.totalAmount || 0)
+    ]);
+    writeSalesRow([
+      '관 급',
+      Number(sd.gwangup.quantity || 0),
+      Number(sd.gwangup.avgUnitPrice || 0),
+      Number(sd.gwangup.amount || 0),
+      Number(sd.gwangup.vat || 0),
+      Number(sd.gwangup.totalAmount || 0)
+    ]);
+
+    const tot = salesTotals.value;
+    writeSalesRow([
+      '합 계',
+      Number(tot.quantity || 0),
+      Number(tot.avgUnitPrice || 0),
+      Number(tot.amount || 0),
+      Number(tot.vat || 0),
+      Number(tot.totalAmount || 0)
+    ], true, 'FFFFF2CC');
+
+    // ③ 원가율 행 (자재비 / 총액)
+    const totalMatAmt = Number(totalUsageAmount.value || 0);
+    const totalSalesAmt = Number(tot.amount || 0);   // ← totalAmount → amount
+const costRate = totalSalesAmt > 0
+  ? totalMatAmt / totalSalesAmt * 100
+  : 0;
+    const isGood = costRate >= 55 && costRate <= 60;   // 55~60% 사이가 양호
+const bgArgb = isGood ? 'FFE2EFDA' : 'FFFCE4D6';
+const txtArgb = isGood ? 'FF375623' : 'FF843C0C';
+
+    const marginRow = worksheet.getRow(currentRow);
+
+    worksheet.mergeCells(currentRow, 1, currentRow, 4);
+    marginRow.getCell(1).value = `원가율 (금액 대비 자재비)  ※ 기준: 55~60% 사이이면 양호`
+    marginRow.getCell(1).font = { size: 10, bold: true };
+    marginRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
+    marginRow.getCell(1).border = allBorders;
+    marginRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
+
+    marginRow.getCell(5).value = isGood ? '✅ 양호' : '⚠️ 미달';
+    marginRow.getCell(5).font = { size: 10, bold: true, color: { argb: txtArgb } };
+    marginRow.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' };
+    marginRow.getCell(5).border = allBorders;
+    marginRow.getCell(5).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
+
+    marginRow.getCell(6).value = costRate / 100;
+    marginRow.getCell(6).numFmt = '0.0%';
+    marginRow.getCell(6).font = { size: 12, bold: true, color: { argb: txtArgb } };
+    marginRow.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' };
+    marginRow.getCell(6).border = allBorders;
+    marginRow.getCell(6).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
+    marginRow.height = 22;
     currentRow++;
 
-    // ── 사진 삽입용 여백 4행 ──────────────────────────
-    for (let i = 0; i < 4; i++) {
-      worksheet.getRow(currentRow).height = 40;  // 각 행 높이를 넉넉하게
-      currentRow++;
-    }
-    currentRow += 3; // 기존 3칸 간격도 유지
+    currentRow += 2; // 섹션 간 간격
 
     // ──────────────────────────────────────────────
     //  2. 월별 자재 사용량
@@ -431,6 +597,173 @@ const downloadExcel = async () => {
   }
 };
 
+const salesEditMode = ref(false)
+
+const emptySales = () => ({
+  quantity: 0, avgUnitPrice: 0, amount: 0, vat: 0, totalAmount: 0
+})
+
+const salesData = ref({ sagup: emptySales(), gwangup: emptySales() })
+const salesForm = ref({ sagup: emptySales(), gwangup: emptySales() })
+
+// 합계 computed
+const salesTotals = computed(() => {
+  const s = salesEditMode.value ? salesForm.value : salesData.value
+
+  const qty = Number(s.sagup.quantity || 0) + Number(s.gwangup.quantity || 0)
+  const amt = Number(s.sagup.amount || 0) + Number(s.gwangup.amount || 0)
+  const vat = Number(s.sagup.vat || 0) + Number(s.gwangup.vat || 0)
+  const total = Number(s.sagup.totalAmount || 0) + Number(s.gwangup.totalAmount || 0)
+
+  const avg = qty > 0 ? Math.round(amt / qty) : 0
+
+  // 👉 자재비 (이건 네가 가지고 있는 값으로 바꿔야 함)
+  const materialCost = 0  // ← 여기에 자재비 넣어야 함
+
+  // ✅ 원가율
+  const costRate = amt > 0 ? materialCost / amt : 0
+
+  return {
+    quantity: qty,
+    avgUnitPrice: avg,
+    amount: amt,
+    vat,
+    totalAmount: total,
+    costRate // 추가
+  }
+})
+// 금액 자동계산: 수량 × 평균단가
+const calcSales = (key) => {
+  const row = salesForm.value[key]
+  row.amount = Math.round((row.quantity || 0) * (row.avgUnitPrice || 0))
+  row.totalAmount = row.amount + (row.vat || 0)
+}
+
+// 총액 자동계산: 금액 + 부가세
+const calcTotal = (key) => {
+  const row = salesForm.value[key]
+  row.totalAmount = (row.amount || 0) + (row.vat || 0)
+}
+
+// 편집 진입 - 현재 데이터를 폼에 복사
+const enterSalesEdit = () => {
+  salesForm.value = {
+    sagup: { ...salesData.value.sagup },
+    gwangup: { ...salesData.value.gwangup }
+  }
+  salesEditMode.value = true
+}
+
+const cancelSalesEdit = () => {
+  salesEditMode.value = false
+}
+
+const mapData = (src = {}) => ({
+  quantity: Number(src.quantity || 0),
+  avgUnitPrice: Number(src.avgUnitPrice || 0),
+  amount: Number(src.amount || 0),
+  vat: Number(src.vat || 0),
+  totalAmount: Number(src.totalAmount || 0)
+})
+
+const loadSales = async () => {
+  try {
+    const res = await api.post('/material/stock/sales/list', {
+      year: selectedYear.value,
+      month: selectedMonth.value
+    })
+
+    const data = res
+    console.log('판매량 데이터:', data)
+
+    let sagup = {}
+    let gwangup = {}
+
+    // ✅ 1. 배열 형태 대응
+    if (Array.isArray(data)) {
+      sagup = data.find(d => d.divType === '사급') || {}
+      gwangup = data.find(d => d.divType === '관급') || {}
+    }
+    // ✅ 2. 객체 형태 대응
+    else {
+      sagup = data.sagup || {}
+      gwangup = data.gwangup || {}
+    }
+
+    // ✅ 3. 항상 동일 구조로 강제 변환
+    salesForm.value = {
+      sagup: mapData(sagup),
+      gwangup: mapData(gwangup)
+    }
+
+    // ✅ 4. computed에서 사용하는 데이터 동기화
+    salesData.value = {
+      sagup: { ...salesForm.value.sagup },
+      gwangup: { ...salesForm.value.gwangup }
+    }
+
+  } catch (e) {
+    console.error('판매량 조회 오류:', e)
+
+    // ❗ 에러나도 화면 안깨지게 초기화
+    salesForm.value = {
+      sagup: mapData(),
+      gwangup: mapData()
+    }
+    salesData.value = {
+      sagup: mapData(),
+      gwangup: mapData()
+    }
+  }
+}
+
+// 저장
+const saveSales = async () => {
+  try {
+    const payload = [
+      { year: selectedYear.value, month: selectedMonth.value, divType: '사급', ...salesForm.value.sagup },
+      { year: selectedYear.value, month: selectedMonth.value, divType: '관급', ...salesForm.value.gwangup }
+    ]
+    await api.post('/material/stock/sales/save', payload)
+    salesData.value = {
+      sagup: { ...salesForm.value.sagup },
+      gwangup: { ...salesForm.value.gwangup }
+    }
+    salesEditMode.value = false
+    loadSales()  // 저장 후 최신 데이터 재조회
+  } catch (e) {
+    console.error('판매량 저장 오류:', e)
+    alert('저장 중 오류가 발생했습니다: ' + e.message)
+  }
+}
+
+const enterFuelEdit = () => {
+  fuelUnitPriceInput.value = fuelSummary.value.unitPrice || 0;
+  fuelEditMode.value = true;
+};
+
+const cancelFuelEdit = () => {
+  fuelEditMode.value = false;
+};
+
+const saveFuelUnitPrice = async () => {
+  try {
+    await api.post('/fuel/dashboard/unit-price/save', {
+      year: selectedYear.value,
+      month: selectedMonth.value,
+      unitPrice: fuelUnitPriceInput.value
+    });
+    const fuel = await api.post('/fuel/dashboard/monthly-summary', {
+      year: selectedYear.value,
+      month: selectedMonth.value
+    });
+    fuelSummary.value = fuel.data || fuel;
+    fuelEditMode.value = false;
+  } catch (e) {
+    alert('단가 저장 중 오류가 발생했습니다.');
+  }
+};
+
 onMounted(loadData);
 </script>
 
@@ -453,6 +786,87 @@ onMounted(loadData);
   font-weight: 700;
   color: #ffffff;
   margin: 0;
+}
+
+.table-caption {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.header-btns {
+  display: flex;
+  gap: .5rem;
+}
+
+.btn-edit-sales {
+  padding: .4rem 1rem;
+  font-size: .875rem;
+  font-weight: 600;
+  background: #e8f0fe;
+  color: #1a56db;
+  border: 1px solid #c7d7f8;
+  border-radius: .5rem;
+  cursor: pointer;
+}
+
+.btn-edit-sales:hover {
+  background: #c7d7f8;
+}
+
+.btn-save-sales {
+  padding: .4rem 1rem;
+  font-size: .875rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  border-radius: .5rem;
+  cursor: pointer;
+}
+
+.btn-cancel-sales {
+  padding: .4rem 1rem;
+  font-size: .875rem;
+  font-weight: 600;
+  background: #e2e8f0;
+  color: #64748b;
+  border: none;
+  border-radius: .5rem;
+  cursor: pointer;
+}
+
+.sales-table .div-label {
+  font-weight: 700;
+  text-align: center;
+}
+
+.sales-input {
+  width: 100%;
+  min-width: 110px;
+  padding: .3rem .5rem;
+  font-size: .875rem;
+  border: 1px solid #c8d8e8;
+  border-radius: .375rem;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.sales-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.sales-input[readonly] {
+  background: #f1f5f9;
+  color: #64748b;
 }
 
 .btn-excel {
@@ -488,6 +902,7 @@ onMounted(loadData);
 }
 
 .stat-card {
+  display: block;
   background: white;
   border-radius: 1rem;
   padding: 1.5rem;
@@ -496,10 +911,10 @@ onMounted(loadData);
 }
 
 .stat-card h3 {
-  font-size: 1.25rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #1e293b;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .stat-table {

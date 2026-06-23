@@ -931,15 +931,15 @@ const filteredVehiclesForTable = computed(() => {
 })
 
 const isVehicleAssigned = computed(() => {
-  if (!modal.value.vehicleId) return false
+  if (modal.value.vehicleId === '' || modal.value.vehicleId == null) return false
   const vehicle = vehicles.value.find(v => v.vehicleId === modal.value.vehicleId)
-  return vehicle && vehicle.userId > 0
+  return vehicle && vehicle.userId != null
 })
 
 const onVehicleChange = () => {
   const vehicle = vehicles.value.find(v => v.vehicleId === modal.value.vehicleId)
   if (vehicle) {
-    if (vehicle.userId > 0) {
+    if (vehicle.userId != null) {
       modal.value.userId = vehicle.userId
     } else {
       modal.value.userId = ''
@@ -948,15 +948,15 @@ const onVehicleChange = () => {
 }
 
 const getDriverPlaceholder = () => {
-  if (!modal.value.vehicleId) return '먼저 차량을 선택하세요'
+  if (modal.value.vehicleId === '' || modal.value.vehicleId == null) return '먼저 차량을 선택하세요'
   if (isVehicleAssigned.value) return '자동 설정됨'
   return '담당자를 선택하세요'
 }
 
 const getAssignedDriverName = () => {
-  if (!modal.value.vehicleId) return ''
+  if (modal.value.vehicleId === '' || modal.value.vehicleId == null) return ''
   const vehicle = vehicles.value.find(v => v.vehicleId === modal.value.vehicleId)
-  if (!vehicle || vehicle.userId === 0) return ''
+  if (!vehicle || vehicle.userId == null) return ''
   return getUserName(vehicle.userId)
 }
 
@@ -1068,12 +1068,12 @@ const closeModal = () => {
 }
 
 const saveModal = async () => {
-  if (!modal.value.vehicleId) {
+  if (modal.value.vehicleId === '' || modal.value.vehicleId == null) {
     alert('차량을 선택해주세요')
     return
   }
 
-  if (!modal.value.userId) {
+  if (modal.value.userId === '' || modal.value.userId == null) {
     alert('담당자를 선택해주세요')
     return
   }
@@ -1136,7 +1136,7 @@ const calculateMonthlyKm = () => {
 }
 
 const saveMileageModal = async () => {
-  if (!mileageModal.value.vehicleId) {
+  if (mileageModal.value.vehicleId === '' || mileageModal.value.vehicleId == null) {
     alert('차량을 선택해주세요')
     return
   }
@@ -1209,7 +1209,7 @@ const calculateTotalCost = () => {
 }
 
 const saveTransportCostModal = async () => {
-  if (!transportCostModal.value.vehicleId) {
+  if (transportCostModal.value.vehicleId === '' || transportCostModal.value.vehicleId == null) {
     alert('차량을 선택해주세요')
     return
   }
