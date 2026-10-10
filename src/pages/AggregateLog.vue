@@ -203,6 +203,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import api from '@/api/axios';
+import { formatNumber as formatNumberBase } from '@/utils/format';
 
 const API_URL = '/material/inventory';
 
@@ -342,10 +343,7 @@ const formatDate = (dateStr) => {
   return `${date.getMonth() + 1}월 ${date.getDate()}일`;
 };
 
-const formatNumber = (value) => {
-  if (!value || value === 0) return '';
-  return Number(value).toLocaleString('ko-KR', { maximumFractionDigits: 3 });
-};
+const formatNumber = (value) => formatNumberBase(value, { maximumFractionDigits: 3, zeroAs: '' });
 
 const formatRatio = (value) => {
   if (!value || value === 0) return '';

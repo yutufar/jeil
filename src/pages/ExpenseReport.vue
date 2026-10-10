@@ -231,6 +231,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '@/api/axios'
+import { formatNumber } from '@/utils/format'
 
 const selectedYear  = ref(new Date().getFullYear())
 const selectedMonth = ref(new Date().getMonth() + 1)
@@ -297,7 +298,6 @@ const flatRows = computed(() => {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-const formatNumber    = (num) => (num || 0).toLocaleString('ko-KR')
 const formatDate      = (d)   => String(d).replace(/-/g, '.').slice(0, 10)
 const formatGroupDate = (d)   => {
   const s = String(d).replace(/\./g, '-').slice(0, 10)

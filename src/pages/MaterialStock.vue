@@ -408,6 +408,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import api from '@/api/axios';
+import { formatNumber as formatNumberBase } from '@/utils/format';
 
 const activeTab = ref('incoming');
 const searchYear = ref(new Date().getFullYear());
@@ -666,10 +667,7 @@ const formatDate = (dateStr) => {
   return `${date.getMonth() + 1}월 ${date.getDate()}일`;
 };
 
-const formatNumber = (value) => {
-  if (!value || value === 0) return '0';
-  return Number(value).toLocaleString('ko-KR', { maximumFractionDigits: 3 });
-};
+const formatNumber = (value) => formatNumberBase(value, { maximumFractionDigits: 3 });
 
 const openingForm = ref({
   year: new Date().getFullYear(),

@@ -369,6 +369,7 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '@/api/axios'
 import ExcelJS from 'exceljs'
+import { formatNumber } from '@/utils/format'
 
 const QTY_PER_TRIP = 17
 
@@ -485,7 +486,6 @@ const modalTotalSupply = computed(() => MATERIALS.reduce((s,m) => s + (modal.val
 const modalTotalVat    = computed(() => Math.round(modalTotalSupply.value * 0.1))
 const modalGrandTotal  = computed(() => modalTotalSupply.value + modalTotalVat.value)
 
-const formatNumber = n => (n ? Number(n).toLocaleString('ko-KR') : '0')
 
 const todayStr = () => {
   const d = new Date()

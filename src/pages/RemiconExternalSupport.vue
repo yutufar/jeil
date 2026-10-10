@@ -224,6 +224,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '@/api/axios'
+import { formatNumber } from '@/utils/format'
 
 const selectedYear  = ref(new Date().getFullYear())
 const selectedMonth = ref(new Date().getMonth() + 1)
@@ -301,7 +302,6 @@ const getVehicleCarNum = (vehicleId) => {
   return v ? v.carNum : '-'
 }
 
-const formatNumber = (num) => (num || 0).toLocaleString('ko-KR')
 
 const formatGroupDate = (dateStr) => {
   if (!dateStr) return '-'

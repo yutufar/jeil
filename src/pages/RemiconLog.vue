@@ -443,6 +443,7 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '@/api/axios'
 import ExcelJS from 'exceljs'
+import { formatNumber } from '@/utils/format'
 
 const selectedYear = ref(new Date().getFullYear())
 const selectedMonth = ref(new Date().getMonth() + 1)
@@ -653,10 +654,6 @@ const formatDate = (dateStr) => {
   return `${date.getMonth() + 1}/${date.getDate()} (${['일', '월', '화', '수', '목', '금', '토'][date.getDay()]})`
 }
 
-const formatNumber = (num) => {
-  if (!num) return '0'
-  return num.toLocaleString('ko-KR')
-}
 
 const onVehicleChange = () => {
   const vehicle = vehicles.value.find(v => v.vehicleId === modal.value.vehicleId)

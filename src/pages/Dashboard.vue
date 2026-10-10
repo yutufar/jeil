@@ -227,6 +227,7 @@ import { ref, computed, onMounted } from 'vue';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import api from '@/api/axios';
+import { formatNumber as formatNumberBase } from '@/utils/format';
 
 const selectedYear = ref(new Date().getFullYear());
 const selectedMonth = ref(new Date().getMonth() + 1);
@@ -254,10 +255,7 @@ const totalUsageAmount = computed(() => {
   return materialUsage.value.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
 });
 
-const formatNumber = (value) => {
-  if (!value || value === 0) return '0';
-  return Number(value).toLocaleString('ko-KR', { maximumFractionDigits: 0 });
-};
+const formatNumber = (value) => formatNumberBase(value, { maximumFractionDigits: 0 });
 
 const loadData = async () => {
   try {

@@ -680,6 +680,7 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '@/api/axios'
 import * as XLSX from 'xlsx'
+import { formatNumber } from '@/utils/format'
 
 const selectedYear = ref(new Date().getFullYear())
 const selectedMonth = ref(new Date().getMonth() + 1)
@@ -1288,10 +1289,6 @@ const saveStockModal = async () => {
   }
 }
 
-const formatNumber = (num) => {
-  if (!num) return '0'
-  return num.toLocaleString('ko-KR')
-}
 
 const loadStock = async () => {
   try {
